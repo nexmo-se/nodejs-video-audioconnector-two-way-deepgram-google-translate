@@ -187,6 +187,67 @@ The application provides comprehensive logging with different categories:
 - Session tokens have appropriate scoping
 - WebSocket connections are properly validated
 
+## **🎛️ Audio Connector UI Management**
+
+### **Hiding Audio Connector Streams from UI**
+
+When using bidirectional Audio Connector (`bidirectional: true`), the system creates a return stream for TTS audio injection. This stream appears in the client's `streamCreated` event and needs special handling to avoid cluttering the UI.
+
+#### **Problem**
+- Audio Connector creates an audio-only stream with empty/undefined name
+- Default subscription shows this as a UI element to users
+- Users see an unwanted "blank" subscriber tile
+
+#### **Solution**
+The client-side code detects and handles Audio Connector streams differently:
+
+```javascript
+// Detect Audio Connector streams by properties
+const isAudioConnector =
+  stream.hasAudio === true &&
+  stream.hasVideo === false &&
+  (!stream.name || stream.name.trim() === "");
+
+if (isAudioConnector) {
+  // Create hidden container for audio-only subscription
+  const hiddenContainer = document.createElement('div');
+  hiddenContainer.style.cssText = `
+    position: absolute !important;
+    left: -10000px !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  `;
+  document.body.appendChild(hiddenContainer);
+
+  // Subscribe for audio playback but keep hidden
+  session.subscribe(stream, hiddenContainer, {
+    subscribeToVideo: false,
+    subscribeToAudio: true,
+    insertMode: "replace"
+  });
+  
+  return; // Skip normal subscription logic
+}
+
+// Normal participant handling for video + audio
+session.subscribe(stream, "subscriber", normalOptions);
+```
+
+#### **Key Points**
+- **Must subscribe** to Audio Connector stream to hear translated audio
+- **Hide completely** using off-screen container and CSS
+- **Audio-only subscription** (`subscribeToVideo: false`)
+- **Cleanup** hidden container when stream is destroyed
+
+#### **Detection Logic**
+Audio Connector streams are identified by:
+- `hasAudio: true` (contains audio)
+- `hasVideo: false` (no video component)  
+- `!stream.name || stream.name.trim() === ""` (empty/missing name)
+
+This approach ensures translated audio plays seamlessly while maintaining a clean UI for regular participant video streams.
+
 ## **🚨 Troubleshooting**
 
 ### **Audio Connector Issues**
