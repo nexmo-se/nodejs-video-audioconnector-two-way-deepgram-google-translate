@@ -28,6 +28,7 @@ A professional-grade video chat application with real-time speech translation po
 ```
 
 ### **Pipeline Flow:**
+
 1. **Audio Capture**: Vonage Audio Connector captures audio from video session
 2. **STT**: Audio → Deepgram STT → Text (with speaker diarization)
 3. **Translation**: Text → Google Translate → English text
@@ -37,6 +38,7 @@ A professional-grade video chat application with real-time speech translation po
 ## **🌍 Supported Languages**
 
 **Auto-Detection Supported:**
+
 - English, Spanish, French, German, Hindi, Russian
 - Portuguese, Japanese, Italian, Dutch
 - And more via Deepgram's multi-language model
@@ -51,6 +53,7 @@ A professional-grade video chat application with real-time speech translation po
 ## **🚀 Quick Start**
 
 ### **1. Clone and Install**
+
 ```bash
 git clone <repository-url>
 cd nodejs-video-audioconnector-two-way-deepgram-google-translate
@@ -58,12 +61,15 @@ npm install
 ```
 
 ### **2. Environment Configuration**
+
 Copy the sample environment file and configure:
+
 ```bash
 cp .env.samp .env
 ```
 
 Edit `.env` with your credentials:
+
 ```env
 APP_ID=your_vonage_application_id
 PORT=3000
@@ -73,19 +79,23 @@ NODE_ENV=development
 ```
 
 ### **3. Private Key Setup**
+
 ```bash
 cp private.key.samp private.key
 # Add your Vonage private key content to private.key
 ```
 
 ### **4. Development Setup (with ngrok)**
+
 For easy development with tunneling:
+
 ```bash
 # Start development server with auto-tunneling
 node update-env.js
 ```
 
 ### **5. Manual Start**
+
 ```bash
 # Start the server manually
 node video-chat-server.js
@@ -94,11 +104,13 @@ node video-chat-server.js
 ## **📖 How to Use**
 
 ### **Starting a Session**
+
 1. Navigate to `http://localhost:3000` (or your domain)
 2. A new video session will be created automatically
 3. Copy the join link to invite other participants
 
 ### **Enabling Translation**
+
 1. Click **"Start Deepgram"** button to begin the translation pipeline
 2. Speak in any supported language
 3. The system will:
@@ -109,20 +121,21 @@ node video-chat-server.js
    - Display transcriptions in real-time
 
 ### **Multiple Speakers**
+
 - The system automatically separates different speakers
 - Each speaker's translations are processed independently
 - Transcriptions show speaker IDs (Speaker 0, Speaker 1, etc.)
 
 ## **🔧 API Endpoints**
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/` | GET | Create new video session |
-| `/:sessionId` | GET | Join existing session |
-| `/:sessionId/join` | GET | Alternative join route |
-| `/:sessionId/token` | GET | Generate authentication token |
-| `/:sessionId/streams` | GET | Get stream information |
-| `/:sessionId/audioconnect` | GET | Initialize Audio Connector |
+| Endpoint                   | Method | Description                   |
+| -------------------------- | ------ | ----------------------------- |
+| `/`                        | GET    | Create new video session      |
+| `/:sessionId`              | GET    | Join existing session         |
+| `/:sessionId/join`         | GET    | Alternative join route        |
+| `/:sessionId/token`        | GET    | Generate authentication token |
+| `/:sessionId/streams`      | GET    | Get stream information        |
+| `/:sessionId/audioconnect` | GET    | Initialize Audio Connector    |
 
 ## **📊 Logging & Monitoring**
 
@@ -130,12 +143,13 @@ The application provides comprehensive logging with different categories:
 
 - **ℹ️ Info**: General application information
 - **✅ Success**: Successful operations
-- **⚠️ Warning**: Warnings and non-critical issues  
+- **⚠️ Warning**: Warnings and non-critical issues
 - **❌ Error**: Error conditions
 - **🔄 Pipeline**: STT→Translation→TTS pipeline steps
 - **🔊 Audio**: Audio processing metrics
 
 ### **Sample Log Output**
+
 ```
 [2025-09-02T10:30:15.123Z] ✅ Audio Connector connected successfully {
   "sessionId": "1_MX4xM...",
@@ -159,6 +173,7 @@ The application provides comprehensive logging with different categories:
 ## **🛠️ Development**
 
 ### **Project Structure**
+
 ```
 ├── video-chat-server.js    # Main application server
 ├── update-env.js          # Development setup with ngrok
@@ -173,6 +188,7 @@ The application provides comprehensive logging with different categories:
 ```
 
 ### **Key Dependencies**
+
 - **@vonage/video**: Video API integration
 - **@deepgram/sdk**: Speech-to-text and text-to-speech
 - **google-translate-api-x**: Translation services
@@ -194,11 +210,13 @@ The application provides comprehensive logging with different categories:
 When using bidirectional Audio Connector (`bidirectional: true`), the system creates a return stream for TTS audio injection. This stream appears in the client's `streamCreated` event and needs special handling to avoid cluttering the UI.
 
 #### **Problem**
+
 - Audio Connector creates an audio-only stream with empty/undefined name
 - Default subscription shows this as a UI element to users
 - Users see an unwanted "blank" subscriber tile
 
 #### **Solution**
+
 The client-side code detects and handles Audio Connector streams differently:
 
 ```javascript
@@ -210,7 +228,7 @@ const isAudioConnector =
 
 if (isAudioConnector) {
   // Create hidden container for audio-only subscription
-  const hiddenContainer = document.createElement('div');
+  const hiddenContainer = document.createElement("div");
   hiddenContainer.style.cssText = `
     position: absolute !important;
     left: -10000px !important;
@@ -224,9 +242,9 @@ if (isAudioConnector) {
   session.subscribe(stream, hiddenContainer, {
     subscribeToVideo: false,
     subscribeToAudio: true,
-    insertMode: "replace"
+    insertMode: "replace",
   });
-  
+
   return; // Skip normal subscription logic
 }
 
@@ -235,15 +253,18 @@ session.subscribe(stream, "subscriber", normalOptions);
 ```
 
 #### **Key Points**
+
 - **Must subscribe** to Audio Connector stream to hear translated audio
 - **Hide completely** using off-screen container and CSS
 - **Audio-only subscription** (`subscribeToVideo: false`)
 - **Cleanup** hidden container when stream is destroyed
 
 #### **Detection Logic**
+
 Audio Connector streams are identified by:
+
 - `hasAudio: true` (contains audio)
-- `hasVideo: false` (no video component)  
+- `hasVideo: false` (no video component)
 - `!stream.name || stream.name.trim() === ""` (empty/missing name)
 
 This approach ensures translated audio plays seamlessly while maintaining a clean UI for regular participant video streams.
@@ -251,16 +272,19 @@ This approach ensures translated audio plays seamlessly while maintaining a clea
 ## **🚨 Troubleshooting**
 
 ### **Audio Connector Issues**
+
 - Ensure `mediaMode: "routed"` is set for video sessions
 - Verify WebSocket URI is accessible from Vonage servers
 - Check that port 443 (WSS) is properly configured
 
 ### **Translation Not Working**
+
 - Verify Deepgram API key is valid and has sufficient credits
 - Check that audio sample rate is 16kHz
 - Ensure internet connectivity for Google Translate API
 
 ### **Connection Problems**
+
 - Check firewall settings for WebSocket connections
 - Verify ngrok tunnel is active (in development)
 - Ensure all environment variables are properly set
@@ -296,24 +320,28 @@ This project is licensed under the ISC License - see the package.json file for d
 ### **Version 1.0 - Initial Refactor**
 
 #### **Code Quality Improvements**
+
 - ✅ **Enhanced Logging**: Added comprehensive logging system with timestamps, categories, and structured data
 - ✅ **Error Handling**: Implemented proper try-catch blocks and error management throughout
 - ✅ **Code Documentation**: Added detailed comments explaining the STT→Translation→TTS pipeline
 - ✅ **Dependency Cleanup**: Removed 13 unused dependencies (54% reduction in package size)
 
 #### **Architecture Improvements**
+
 - ✅ **Session Management**: Improved session creation with proper error handling
 - ✅ **WebSocket Management**: Enhanced connection handling with proper cleanup
 - ✅ **Audio Processing**: Optimized audio buffer handling and chunking
 - ✅ **Pipeline Monitoring**: Added step-by-step pipeline tracking and metrics
 
 #### **Developer Experience**
+
 - ✅ **Consistent Naming**: Applied consistent naming conventions throughout codebase
 - ✅ **Structured Comments**: Added comprehensive inline documentation
 - ✅ **Performance Logging**: Added audio processing metrics and connection monitoring
 - ✅ **Graceful Shutdown**: Implemented proper server shutdown handling
 
 #### **Technical Improvements**
+
 - ✅ **Memory Management**: Proper cleanup of Deepgram connections and WebSocket resources
 - ✅ **Audio Optimization**: Removed WAV headers and optimized chunk sizes for real-time streaming
 - ✅ **Connection Stability**: Enhanced WebSocket error handling and reconnection logic
