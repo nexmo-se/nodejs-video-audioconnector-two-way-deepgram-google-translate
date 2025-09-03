@@ -1,1 +1,10 @@
 node_modules
+.env
+private.key
+dev.txt
+NEW_README.MD
+EVENT_ENHANCEMENTS.MD
+code.txt
+OG_REFACT_1.MD
+OG_REVIEW_BAD.MD
+OG_REVIEW_1.MD

@@ -1,138 +1,288 @@
-require('dotenv').config();
-var express = require('express');
-var cors = require('cors');
-var path = require('path');
-var cookieParser = require('cookie-parser');
-var logger = require('morgan');
+/**
+ * Real-Time Video Chat with Multi-Language Translation
+ *
+ * This application provides a video chat platform with real-time speech translation.
+ *
+ * ARCHITECTURE OVERVIEW:
+ * 1. Vonage Video API - Handles video/audio streaming between participants
+ * 2. Audio Connector - Captures audio from video session
+ * 3. Deepgram STT - Converts speech to text with speaker diarization
+ * 4. Google Translate - Translates text between languages
+ * 5. Deepgram TTS - Converts translated text back to speech
+ * 6. WebSocket - Streams translated audio back to participants
+ *
+ * PIPELINE FLOW:
+ * Audio Stream → STT → Translation → TTS → Audio Playback
+ */
+
+// Load environment variables from .env file
+require("dotenv").config();
+
+// Express.js web framework and middleware imports
+var express = require("express");
+var cors = require("cors"); // Cross-Origin Resource Sharing
+var path = require("path"); // File path utilities
+var cookieParser = require("cookie-parser"); // Cookie parsing middleware
+var logger = require("morgan"); // HTTP request logging
 var app = express();
-var crypto = require('crypto');
-const { Auth } = require('@vonage/auth');
-const { Video } = require('@vonage/video');
-const ws = require('ws');
-app.set('view engine', 'ejs'); 
-app.use(logger('dev'));
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-app.use(cookieParser());
-app.use('/', express.static(path.join(__dirname, 'views')));
-const fetch = require("cross-fetch");
-const translate = require('google-translate-api-x');
-const { createClient,LiveTranscriptionEvents } = require("@deepgram/sdk");
-const { Vonage } = require('@vonage/server-sdk');
-// - or -
-// import { createClient } from "@deepgram/sdk";
+
+// Vonage Video API imports for video session management
+const { Auth } = require("@vonage/auth");
+const { Video } = require("@vonage/video");
+
+// WebSocket library for real-time communication
+const ws = require("ws");
+
+// Configure Express.js application
+app.set("view engine", "ejs"); // Use EJS templating engine
+app.use(logger("dev")); // Log HTTP requests in development format
+app.use(cors()); // Enable CORS for all routes
+app.use(express.json()); // Parse JSON request bodies
+app.use(express.urlencoded({ extended: false })); // Parse URL-encoded bodies
+app.use(cookieParser()); // Parse cookies from requests
+app.use("/", express.static(path.join(__dirname, "views"))); // Serve static files
+
+// Translation and speech processing imports
+const fetch = require("cross-fetch"); // HTTP client (polyfill)
+const translate = require("google-translate-api-x"); // Google Translate API
+
+// Deepgram SDK for Speech-to-Text (STT) and Text-to-Speech (TTS)
+const { createClient, LiveTranscriptionEvents } = require("@deepgram/sdk");
 const deepgram = createClient(process.env.DEEPGRAM_API_KEY);
-console.log(deepgram.version)
 
-const appId = process.env.APP_ID;
-const port = process.env.PORT;
-const websocket_server_uri = process.env.WEBSOCKET_SERVER_URI
-const credentials = new Auth({
-	applicationId: appId,
-	privateKey: "private.key",
-});
-
-const options = {};
-const videoClient = new Video(credentials, options);
-var sessionId = null;
-
-
-async function new_session(res, req) {
-	const session = await videoClient.createSession({ mediaMode: 'routed' })
-	console.log(session)
-	sessionId = session.sessionId;
-	console.log(sessionId)
-	token = videoClient.generateClientToken(sessionId)
-	res.render('index.ejs', {
-		sessionId: sessionId,
-		token: token,
-		appId: appId,
-		websocket_server_uri: websocket_server_uri,
-	});
-}
-
-
-app.get('/', function (req, res) {
-	new_session(res, req);
-});
-
-app.get('/:sessionId', function (req, res) {
-	token = videoClient.generateClientToken(sessionId);
-	res.render('index.ejs', {
-		sessionId: sessionId,
-		token: token,
-		appId: appId,
-		websocket_server_uri: websocket_server_uri,
-	});
-});
-
-app.get('/:sessionId/join', function (req, res) {
-	console.log(req.params);
-	sessionId = req.params['sessionId'];
-	token = videoClient.generateClientToken(sessionId);
-	res.render('index.ejs', {
-		sessionId: sessionId,
-		token: token,
-		appId: appId,
-		websocket_server_uri: websocket_server_uri,
-	});
-});
-
-app.get('/:sessionId/token', function (req, res) {
-	sessionId = req.params['sessionId'];
-	role = req.query['role'] || 'publisher';	
-	token = videoClient.generateClientToken(sessionId,{role:role});
-	params = `${appId} ${sessionId} ${token} true`
-	return res.json({session_id:sessionId, token:token, appId:appId, role:role, commandParams: params})
-});
-
-//View all Connected Streams
-//https://developer.vonage.com/en/api/video#get-stream-layouts
-app.get('/:sessionId/streams', async function (req, res) {
-	sessionId = req.params['sessionId'];
-	streamInfo = await videoClient.getStreamInfo(sessionId)
-	return res.json({session_id:sessionId, streamInfo:streamInfo})
-});
-
-
-//Start an Audio Connector Session
-app.get('/:sessionId/audioconnect', async function (req, res) {
-	console.log("Audio connect")
-	token = videoClient.generateClientToken(sessionId);
-	
-	
-	result = await videoClient.connectToWebsocket(req.params['sessionId'], token, {"uri":websocket_server_uri, "headers": {"sessionid": req.params['sessionId']}, "audioRate":16000, "bidirectional":true})
-	console.log("AC::", result)
-	if (result.connectionId!=null) {
-		console.log('Audio Socket websocket connected');
-		return res.json({success:true,message:"Audio Connecter connected to socket"}, 200);
-		
-	} else {
-		console.log('Error:', error.message);
-		return res.json({success:false,message:"Audio Connector failed to connect to socket"}, 401);
-	}
-});
-
-// Set up a headless websocket server for our Audio Connector
-const wsServer = new ws.Server({ noServer: true });
-console.log("start ws")
-wsServer.getUniqueID = function () {
-    function s4() {
-        return Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1);
-    }		
-    return s4() + s4() + '-' + s4();
+// Enhanced logging utility
+const log = {
+  info: (message, data = null) => {
+    const timestamp = new Date().toISOString();
+    console.log(
+      `[${timestamp}] ℹ️  ${message}`,
+      data ? JSON.stringify(data, null, 2) : ""
+    );
+  },
+  success: (message, data = null) => {
+    const timestamp = new Date().toISOString();
+    console.log(
+      `[${timestamp}] ✅ ${message}`,
+      data ? JSON.stringify(data, null, 2) : ""
+    );
+  },
+  warning: (message, data = null) => {
+    const timestamp = new Date().toISOString();
+    console.log(
+      `[${timestamp}] ⚠️  ${message}`,
+      data ? JSON.stringify(data, null, 2) : ""
+    );
+  },
+  error: (message, error = null) => {
+    const timestamp = new Date().toISOString();
+    console.log(
+      `[${timestamp}] ❌ ${message}`,
+      error ? error.message || error : ""
+    );
+  },
+  pipeline: (step, message, data = null) => {
+    const timestamp = new Date().toISOString();
+    console.log(
+      `[${timestamp}] 🔄 PIPELINE ${step}: ${message}`,
+      data ? JSON.stringify(data, null, 2) : ""
+    );
+  },
+  audio: (message, bufferSize = null) => {
+    const timestamp = new Date().toISOString();
+    const size = bufferSize ? ` (${(bufferSize / 1024).toFixed(1)}KB)` : "";
+    console.log(`[${timestamp}] 🔊 AUDIO: ${message}${size}`);
+  },
 };
 
-// helper function to convert stream to audio buffer
+log.info("Deepgram SDK initialized", { version: deepgram.version });
+
+// Application configuration from environment variables
+const appId = process.env.APP_ID; // Vonage Application ID
+const port = process.env.PORT || 3002; // Server port (default: 3002)
+const websocket_server_uri = process.env.WEBSOCKET_SERVER_URI; // WebSocket server URI
+
+// Initialize Vonage Video API authentication
+const credentials = new Auth({
+  applicationId: appId,
+  privateKey: "private.key", // Path to Vonage private key file
+});
+
+// Create Vonage Video client with authentication credentials
+const options = {};
+const videoClient = new Video(credentials, options);
+
+// Global session state (TODO: Move to proper session management)
+var sessionId = null;
+
+/**
+ * Creates a new Vonage Video session and renders the main page
+ * @param {Object} res - Express response object
+ * @param {Object} req - Express request object
+ */
+async function new_session(res, req) {
+  try {
+    // Create new video session with routed media mode for Audio Connector compatibility
+    const session = await videoClient.createSession({ mediaMode: "routed" });
+
+    // Store session ID globally (TODO: Use proper session management)
+    sessionId = session.sessionId;
+
+    // Generate client token for this session
+    token = videoClient.generateClientToken(sessionId);
+
+    log.success("New video session created", {
+      sessionId: sessionId,
+      mediaMode: "routed",
+    });
+
+    // Render the main video chat page with session details
+    res.render("index.ejs", {
+      sessionId: sessionId,
+      token: token,
+      appId: appId,
+      websocket_server_uri: websocket_server_uri,
+    });
+  } catch (error) {
+    log.error("Failed to create new session", error);
+    res.status(500).send("Failed to create session");
+  }
+}
+
+// ===== HTTP ROUTES =====
+
+/**
+ * Root route - Creates a new video session
+ * GET /
+ */
+app.get("/", function (req, res) {
+  new_session(res, req);
+});
+
+/**
+ * Session route - Joins an existing session
+ * GET /:sessionId
+ */
+app.get("/:sessionId", function (req, res) {
+  token = videoClient.generateClientToken(sessionId);
+  res.render("index.ejs", {
+    sessionId: sessionId,
+    token: token,
+    appId: appId,
+    websocket_server_uri: websocket_server_uri,
+  });
+});
+
+/**
+ * Join route - Alternative way to join a session
+ * GET /:sessionId/join
+ */
+app.get("/:sessionId/join", function (req, res) {
+  console.log(req.params);
+  sessionId = req.params["sessionId"];
+  token = videoClient.generateClientToken(sessionId);
+  res.render("index.ejs", {
+    sessionId: sessionId,
+    token: token,
+    appId: appId,
+    websocket_server_uri: websocket_server_uri,
+  });
+});
+
+/**
+ * CRITICAL: Audio Connector initialization endpoint
+ * GET /:sessionId/audioconnect
+ *
+ * This endpoint starts the STT→Translation→TTS pipeline by:
+ * 1. Connecting Vonage Audio Connector to the video session
+ * 2. Routing session audio to our WebSocket server
+ * 3. Enabling bidirectional audio for TTS playback
+ */
+app.get("/:sessionId/audioconnect", async function (req, res) {
+  try {
+    const sessionId = req.params["sessionId"];
+    log.info("Audio Connector connection request", { sessionId });
+
+    token = videoClient.generateClientToken(sessionId);
+
+    // Connect Audio Connector to the video session
+    // This captures audio from all participants and sends to our WebSocket
+    const result = await videoClient.connectToWebsocket(sessionId, token, {
+      uri: websocket_server_uri, // Our WebSocket server URI
+      headers: { sessionid: sessionId }, // Pass session ID in headers
+      audioRate: 16000, // 16kHz sample rate (required by Deepgram)
+      bidirectional: true, // Enable audio playback (TTS → session)
+    });
+
+    if (result.connectionId != null) {
+      log.success("Audio Connector connected successfully", {
+        sessionId,
+        connectionId: result.connectionId,
+        audioRate: "16kHz",
+        bidirectional: true,
+      });
+
+      return res.json({
+        success: true,
+        message: "Audio Connector connected to socket",
+        connectionId: result.connectionId,
+      });
+    } else {
+      log.error(
+        "Audio Connector connection failed - no connection ID returned"
+      );
+      return res.status(500).json({
+        success: false,
+        message: "Audio Connector failed to connect to socket",
+      });
+    }
+  } catch (error) {
+    log.error("Audio Connector connection error", error);
+    return res.status(500).json({
+      success: false,
+      message: "Audio Connector connection failed",
+      error: error.message,
+    });
+  }
+});
+
+// ===== WEBSOCKET SERVER & AUDIO PROCESSING =====
+
+/**
+ * WebSocket server for handling Audio Connector connections
+ * This server receives audio from Vonage and processes it through the STT→TTS pipeline
+ */
+const wsServer = new ws.Server({ noServer: true });
+log.info("WebSocket server initialized and ready for connections");
+
+/**
+ * Generate unique connection IDs for WebSocket clients
+ */
+wsServer.getUniqueID = function () {
+  function s4() {
+    return Math.floor((1 + Math.random()) * 0x10000)
+      .toString(16)
+      .substring(1);
+  }
+  return s4() + s4() + "-" + s4();
+};
+
+/**
+ * AUDIO PROCESSING: Convert TTS response stream to audio buffer
+ * @param {ReadableStream} response - Stream from Deepgram TTS API
+ * @returns {Buffer} - Audio buffer ready for transmission
+ */
 const getAudioBuffer = async (response) => {
   const reader = response.getReader();
   const chunks = [];
+
+  // Read all chunks from the stream
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
     chunks.push(value);
   }
+
+  // Combine all chunks into a single buffer
   const dataArray = chunks.reduce(
     (acc, chunk) => Uint8Array.from([...acc, ...chunk]),
     new Uint8Array(0)
@@ -140,164 +290,379 @@ const getAudioBuffer = async (response) => {
   return Buffer.from(dataArray.buffer);
 };
 
-const playback_to_websocket = async (ws, stream) => {  
-  if (stream) {
-    // Convert the stream to an audio buffer
-    var buffer = await getAudioBuffer(stream);
-		//remove the WAV header (first 44 bytes)
-		buffer = buffer.subarray(44,buffer.length)
-		console.log("Buffer", buffer)
-    //Write the audio buffer to a filwebsocket
-		for(i=0; i<= buffer.length; i+=640){
-			ws.send(buffer.subarray(i,i+640))
-		}
-  } else {
-    console.error("Error generating audio:", stream);
+/**
+ * AUDIO TRANSMISSION: Send TTS audio back to video session
+ * @param {WebSocket} ws - WebSocket connection to Audio Connector
+ * @param {ReadableStream} stream - Audio stream from Deepgram TTS
+ *
+ * PIPELINE STEP 5: TTS Audio → Video Session
+ * - Converts TTS stream to buffer
+ * - Removes WAV header (44 bytes)
+ * - Chunks audio into 640-byte packets for transmission
+ * - Sends to Audio Connector which plays in video session
+ */
+const playback_to_websocket = async (ws, stream) => {
+  try {
+    if (stream) {
+      // Convert the TTS stream to an audio buffer
+      const buffer = await getAudioBuffer(stream);
+
+      // Remove the WAV header (first 44 bytes) - Audio Connector expects raw PCM
+      const audioData = buffer.subarray(44, buffer.length);
+
+      log.audio(`TTS audio prepared for transmission`, audioData.length);
+      log.pipeline(
+        "5",
+        `Sending ${(audioData.length / 1024).toFixed(
+          1
+        )}KB audio to video session`
+      );
+
+      // Send audio in 640-byte chunks (optimal for real-time streaming)
+      let chunksSent = 0;
+      for (let i = 0; i <= audioData.length; i += 640) {
+        ws.send(audioData.subarray(i, i + 640));
+        chunksSent++;
+      }
+
+      log.success(`Audio transmission completed: ${chunksSent} chunks sent`);
+    } else {
+      log.error("No audio stream provided for playback");
+    }
+  } catch (error) {
+    log.error("Audio transmission failed", error);
   }
 };
 
+/**
+ * MAIN WEBSOCKET CONNECTION HANDLER
+ *
+ * This handles connections from:
+ * 1. Vonage Audio Connector (sends audio from video session)
+ * 2. Web clients (receive transcription updates)
+ *
+ * COMPLETE STT→TRANSLATION→TTS PIPELINE IMPLEMENTATION
+ */
+wsServer.on("connection", (websocket) => {
+  // Assign unique ID to this WebSocket connection
+  websocket.id = wsServer.getUniqueID();
+  log.info("New WebSocket connection established", {
+    connectionId: websocket.id,
+  });
 
+  // Initialize Deepgram connection for Speech-to-Text
+  // This will be configured when Audio Connector sends setup message
+  var dgConnection = deepgram.listen.live();
 
-wsServer.on('connection', websocket => {
-	//assign an id to this client
-	websocket.id = wsServer.getUniqueID();
-	// Create a websocket connection to Deepgram
-	// In this example, punctuation is turned on, interim results are turned off, and language is set to UK English.
-	var dgConnection = deepgram.listen.live();
-	//var dgConnection = null;
+  /**
+   * MESSAGE HANDLER - Routes different types of WebSocket messages
+   *
+   * Message types:
+   * 1. "content-type" - Audio Connector setup (starts STT pipeline)
+   * 2. "set_id" - Client identification
+   * 3. "close_audio_connector" - Cleanup request
+   * 4. Binary data - Raw audio from video session → STT
+   */
+  websocket.on("message", function message(data, isBinary) {
+    // ===== PIPELINE INITIALIZATION =====
+    if (data.toString().includes("content-type")) {
+      // Audio Connector sends this when connecting to configure STT
+      const messageData = JSON.parse(data);
+      websocket.id = messageData["sessionid"];
 
-	
-	websocket.on('message', function message(data, isBinary) {
+      log.pipeline("INIT", "Audio Connector setup received", {
+        sessionId: websocket.id,
+        connectionType: "Audio Connector",
+      });
 
-		if (data.toString().includes("content-type")){
-			//console.log(data)
-			//change the ID to the current sessionID
-			websocket.id =JSON.parse(data)['sessionid'];
-			//Multilingual (English, Spanish, French, German, Hindi, Russian, Portuguese, Japanese, Italian, and Dutch): multi
+      /**
+       * PIPELINE STEP 1: Configure Deepgram STT
+       *
+       * Key configuration:
+       * - language: "multi" - Detects multiple languages automatically
+       * - diarize: true - Separates different speakers
+       * - model: "nova-3" - Latest Deepgram model for accuracy
+       */
+      dgConnection = deepgram.listen.live({
+        punctuate: true, // Add punctuation to transcripts
+        interim_results: false, // Only process final results (more accurate)
+        language: "multi", // Multi-language detection
+        model: "nova-3", // Latest Deepgram model
+        encoding: "linear16", // PCM audio format
+        sample_rate: 16000, // 16kHz sample rate
+        channel: 2, // Stereo audio
+        diarize: true, // Speaker separation
+      });
 
-			dgConnection = deepgram.listen.live({
-				punctuate: true,
-				interim_results: false,
-				language: "multi",
-				model: "nova-3",
-				encoding: "linear16",
-				sample_rate: 16000,
-				channel: 2,
-				diarize: true
-			});
+      log.pipeline("1", "Deepgram STT configured", {
+        language: "multi-language",
+        model: "nova-3",
+        sampleRate: "16kHz",
+        diarization: "enabled",
+      });
 
-			dgConnection.on(LiveTranscriptionEvents.Open, () => {
-				console.log("DEEPGRAM CONN OPEN")
-				dgConnection.on(LiveTranscriptionEvents.Transcript, async (data) => {
-					// Write only the transcript to the console
-					try {
-						transcript=data.channel.alternatives[0].transcript, { depth: null };
-						if(transcript!='' && transcript != ' ' && data.is_final){
-							words = data.channel.alternatives[0].words
-							message_to_send = {}
-							
-							words.forEach(function each(word) {
-								if(word.speaker in message_to_send){
-									message_to_send[word.speaker]+=" "+word.punctuated_word
-								}else{
-									message_to_send[word.speaker]=word.punctuated_word
-								}
-								
-							});
-							for (const [key, value] of Object.entries(message_to_send)) {
-								console.log(key, value);								
-								const res = await translate(value, { to: 'en'});
-								message_to_send[key] = res.text
-								console.log("Original text language", res.from.language.iso); 
-								console.log("Translated text", res.text);
-								const text = res.text
-								//if original is english, no need to play it back			
-								if(!res.from.language.iso.includes("en")) {
-									// Make a request and configure the request with options (such as model choice, audio configuration, etc.)
-									const response = await deepgram.speak.request(
-										{ text },
-										{
-											model: "aura-2-thalia-en",
-											encoding: "linear16",
-											container: "wav",
-											sample_rate: 16000,
-										}
-									);
-									// Get the audio stream and headers from the response
-									const stream = await response.getStream();
-									playback_to_websocket(websocket, stream)
-								}
-							}
-							console.log("Message: ",message_to_send)
-							to_send = {
-								"sessionid":websocket.id,
-								"messages":message_to_send
-							}
-							wsServer.clients.forEach(function each(client) {
-								if(client.id === "client_"+websocket.id){
-									client.send(JSON.stringify(to_send))
-								}
-							});
-						}
-						
-					} catch (error) {
-						console.log("no data", error);
-					}
-				});
-				dgConnection.on(LiveTranscriptionEvents.Close, (close) => {
-					console.log("Connection closed.", close);
-					dgConnection.requestClose();
-				});
-				dgConnection.on(LiveTranscriptionEvents.Error, (error) => {
-					console.log("Error.", error);
-					dgConnection.requestClose();
-				});
-			});
-		
-			console.log("session_id is: ", websocket.id)
-		}
-		else if (data.toString().includes("set_id")){
-			id = JSON.parse(data)['id']
-			//change the ID to the current sessionID
-			websocket.id = id;
-			console.log("client_id is: ", id)
-		}
-		else if (data.toString().includes("close_audio_connector")){
-			console.log("Closing", data)
-			var session_id = JSON.parse(data)['sessionid']
-			
-			wsServer.clients.forEach(function each(client) {
-				if(client.id === session_id){
-					//will also close deepgram connection
-					client.close();
-				}
-			});
-		}
-		else{
-			//console.log(data)
-			if(dgConnection != null){
-				if (dgConnection.getReadyState() == 1) {
-					dgConnection.send(data);
-				}
-			}
-			
-		}
-		
-		// Continue as before.
-	  });
-	  
-	websocket.on('close', function close(code, data) {
-		const reason = data.toString();
-		
-		if(dgConnection != null){dgConnection.requestClose();}
-		// Continue as before.
-	  });
-	  
-});
+      // ===== DEEPGRAM EVENT HANDLERS =====
+      dgConnection.on(LiveTranscriptionEvents.Open, () => {
+        log.success("Deepgram STT connection opened and ready");
 
-const server = app.listen(port);
-server.on('upgrade', (request, socket, head) => {
-  wsServer.handleUpgrade(request, socket, head, socket => {
-    wsServer.emit('connection', socket, request);
+        /**
+         * CORE STT→TRANSLATION→TTS PIPELINE
+         *
+         * PIPELINE STEP 2: Process Speech-to-Text Results
+         * Triggered when Deepgram completes transcription
+         */
+        dgConnection.on(LiveTranscriptionEvents.Transcript, async (data) => {
+          try {
+            // Extract transcript from Deepgram response
+            const transcript = data.channel.alternatives[0].transcript;
+
+            // Only process non-empty final transcripts
+            if (transcript && transcript.trim() && data.is_final) {
+              log.pipeline("2", "Speech-to-Text completed", {
+                transcript: transcript,
+                isFinal: data.is_final,
+              });
+
+              // ===== SPEAKER DIARIZATION =====
+              // Group words by speaker for better translation context
+              const words = data.channel.alternatives[0].words;
+              const message_to_send = {};
+
+              // Combine words by speaker to form complete sentences
+              words.forEach(function each(word) {
+                if (word.speaker in message_to_send) {
+                  message_to_send[word.speaker] += " " + word.punctuated_word;
+                } else {
+                  message_to_send[word.speaker] = word.punctuated_word;
+                }
+              });
+
+              log.info("Speaker diarization completed", {
+                speakers: Object.keys(message_to_send),
+                totalSpeakers: Object.keys(message_to_send).length,
+              });
+
+              // ===== PROCESS EACH SPEAKER'S SPEECH =====
+              for (const [speaker, text] of Object.entries(message_to_send)) {
+                /**
+                 * PIPELINE STEP 3: Language Translation
+                 * Translate speech to English using Google Translate
+                 */
+                const translationResult = await translate(text, { to: "en" });
+                message_to_send[speaker] = translationResult.text;
+
+                log.pipeline(
+                  "3",
+                  `Translation completed for Speaker ${speaker}`,
+                  {
+                    originalText: text,
+                    detectedLanguage: translationResult.from.language.iso,
+                    translatedText: translationResult.text,
+                  }
+                );
+
+                /**
+                 * PIPELINE STEP 4: Text-to-Speech Generation
+                 * Only generate TTS if original language was not English
+                 */
+                if (!translationResult.from.language.iso.includes("en")) {
+                  log.pipeline("4", `Generating TTS for non-English speech`, {
+                    speaker,
+                    originalLanguage: translationResult.from.language.iso,
+                    textToSynthesize: translationResult.text,
+                  });
+
+                  // Generate English TTS audio from translated text
+                  const response = await deepgram.speak.request(
+                    { text: translationResult.text },
+                    {
+                      model: "aura-2-thalia-en", // High-quality English voice
+                      encoding: "linear16", // PCM format for Audio Connector
+                      container: "wav", // WAV container
+                      sample_rate: 16000, // Match video session sample rate
+                    }
+                  );
+
+                  // Get the audio stream from Deepgram TTS
+                  const stream = await response.getStream();
+
+                  /**
+                   * PIPELINE STEP 5: Audio Playback
+                   * Send TTS audio back to video session via Audio Connector
+                   */
+                  await playback_to_websocket(websocket, stream);
+                } else {
+                  log.info(
+                    `Skipping TTS for Speaker ${speaker} - already English`
+                  );
+                }
+              }
+
+              // ===== SEND TRANSCRIPTION TO CLIENTS =====
+              const transcriptionUpdate = {
+                sessionid: websocket.id,
+                messages: message_to_send,
+                timestamp: new Date().toISOString(),
+              };
+
+              log.info("Sending transcription update to clients", {
+                sessionId: websocket.id,
+                messageCount: Object.keys(message_to_send).length,
+              });
+
+              // Send transcription updates to web clients for UI display
+              wsServer.clients.forEach(function each(client) {
+                if (client.id === "client_" + websocket.id) {
+                  client.send(JSON.stringify(transcriptionUpdate));
+                }
+              });
+            }
+          } catch (error) {
+            log.error("Pipeline processing failed", error);
+          }
+        });
+
+        // Handle Deepgram connection events
+        dgConnection.on(LiveTranscriptionEvents.Close, (closeEvent) => {
+          log.warning("Deepgram connection closed", {
+            type: closeEvent.type,
+            timeStamp: closeEvent.timeStamp,
+          });
+          dgConnection.requestClose();
+        });
+
+        dgConnection.on(LiveTranscriptionEvents.Error, (error) => {
+          log.error("Deepgram connection error", error);
+          dgConnection.requestClose();
+        });
+      });
+    }
+
+    // ===== CLIENT IDENTIFICATION =====
+    else if (data.toString().includes("set_id")) {
+      // Web clients send this to identify themselves for receiving transcriptions
+      const messageData = JSON.parse(data);
+      const clientId = messageData["id"];
+      websocket.id = clientId;
+
+      log.info("Client identified for transcription updates", {
+        clientId: clientId,
+        connectionType: "Web Client",
+      });
+    }
+
+    // ===== CLEANUP REQUEST =====
+    else if (data.toString().includes("close_audio_connector")) {
+      const messageData = JSON.parse(data);
+      const sessionId = messageData["sessionid"];
+
+      log.warning("Audio Connector shutdown requested", { sessionId });
+
+      // Close Audio Connector connection and cleanup resources
+      wsServer.clients.forEach(function each(client) {
+        if (client.id === sessionId) {
+          client.close(); // This will also close the Deepgram connection
+          log.success("Audio Connector connection closed", { sessionId });
+        }
+      });
+    }
+
+    // ===== AUDIO DATA PROCESSING =====
+    else {
+      /**
+       * PIPELINE STEP 1: Audio Stream → STT
+       * Raw audio data from Audio Connector sent to Deepgram for transcription
+       */
+      if (dgConnection != null && dgConnection.getReadyState() == 1) {
+        dgConnection.send(data); // Forward audio to Deepgram STT
+        // Only log audio data periodically to avoid spam
+        if (Math.random() < 0.001) {
+          // Log ~0.1% of audio packets
+          log.audio(`Audio data forwarded to Deepgram STT`, data.length);
+        }
+      }
+    }
+  });
+
+  /**
+   * CONNECTION CLEANUP
+   * Properly close Deepgram connections when WebSocket disconnects
+   */
+  websocket.on("close", function close(code, reason) {
+    log.warning("WebSocket connection closed", {
+      connectionId: websocket.id,
+      code: code,
+      reason: reason?.toString(),
+    });
+
+    if (dgConnection != null) {
+      dgConnection.requestClose(); // Clean up Deepgram connection
+      log.info("Deepgram connection cleaned up");
+    }
+  });
+
+  websocket.on("error", function error(err) {
+    log.error("WebSocket connection error", err);
   });
 });
+
+// ===== SERVER INITIALIZATION =====
+
+/**
+ * Start the HTTP server
+ */
+const server = app.listen(port, () => {
+  log.success(`Server started successfully`, {
+    port: port,
+    environment: process.env.NODE_ENV || "development",
+    websocketUri: websocket_server_uri,
+  });
+});
+
+/**
+ * Enable WebSocket upgrade support
+ * This allows the HTTP server to handle WebSocket connections
+ * Required for Audio Connector and client WebSocket communication
+ */
+server.on("upgrade", (request, socket, head) => {
+  wsServer.handleUpgrade(request, socket, head, (socket) => {
+    wsServer.emit("connection", socket, request);
+  });
+});
+
+// Graceful shutdown handling
+process.on("SIGTERM", () => {
+  log.warning("SIGTERM received, starting graceful shutdown");
+  server.close(() => {
+    log.info("HTTP server closed");
+    process.exit(0);
+  });
+});
+
+process.on("SIGINT", () => {
+  log.warning("SIGINT received, starting graceful shutdown");
+  server.close(() => {
+    log.info("HTTP server closed");
+    process.exit(0);
+  });
+});
+
+/**
+ * COMPLETE PIPELINE SUMMARY:
+ *
+ * 1. AUDIO CAPTURE: Vonage Audio Connector captures audio from video session
+ * 2. STT: Audio → Deepgram STT → Text (with speaker diarization)
+ * 3. TRANSLATION: Text → Google Translate → English text
+ * 4. TTS: English text → Deepgram TTS → Audio stream
+ * 5. PLAYBACK: Audio stream → Audio Connector → Video session
+ *
+ * SUPPORTED LANGUAGES:
+ * Auto-detected: English, Spanish, French, German, Hindi, Russian,
+ * Portuguese, Japanese, Italian, Dutch (and more)
+ *
+ * REAL-TIME FEATURES:
+ * - Speaker diarization (multiple speakers)
+ * - Language auto-detection
+ * - Live transcription display
+ * - Bidirectional audio (both STT and TTS)
+ */
