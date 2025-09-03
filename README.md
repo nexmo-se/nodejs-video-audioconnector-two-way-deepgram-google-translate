@@ -85,7 +85,7 @@ cp private.key.samp private.key
 # Add your Vonage private key content to private.key
 ```
 
-### **4. Development Setup (with ngrok)**
+### **4. Development Setup with ngrok (recommended)**
 
 For easy development with tunneling:
 
@@ -94,9 +94,15 @@ For easy development with tunneling:
 node update-env.js
 ```
 
-### **5. Manual Start**
+### **5. Manual Start (other way)**
 
 ```bash
+# Start ngrok server on port 3002
+ngrok http 3002
+
+# Update .env with NGROK_URL using wss://
+WEBSOCKET_SERVER_URI=wss://NGROK_URL
+
 # Start the server manually
 node video-chat-server.js
 ```
@@ -105,9 +111,9 @@ node video-chat-server.js
 
 ### **Starting a Session**
 
-1. Navigate to `http://localhost:3000` (or your domain)
+1. Navigate to `http://localhost:3002` (or your public ngrok url: http://NGROK_URL)
 2. A new video session will be created automatically
-3. Copy the join link to invite other participants
+3. Copy the join link to invite 2nd participant
 
 ### **Enabling Translation**
 
@@ -205,69 +211,142 @@ The application provides comprehensive logging with different categories:
 
 ## **🎛️ Audio Connector UI Management**
 
-### **Hiding Audio Connector Streams from UI**
+### **Important: Audio Connector Subscription Behavior**
 
-When using bidirectional Audio Connector (`bidirectional: true`), the system creates a return stream for TTS audio injection. This stream appears in the client's `streamCreated` event and needs special handling to avoid cluttering the UI.
+When using bidirectional Audio Connector to publish translated speech back to the video session, **you must subscribe to the Audio Connector stream** to allow users to hear the translated audio. However, the Vonage Video SDK automatically wants to render an audio-only placeholder/subscriber tile in the UI.
 
-#### **Problem**
+### **The Problem**
 
-- Audio Connector creates an audio-only stream with empty/undefined name
-- Default subscription shows this as a UI element to users
-- Users see an unwanted "blank" subscriber tile
+- Audio Connector creates a bidirectional stream for TTS audio injection
+- The SDK treats this as a regular stream and tries to render a subscriber UI element
+- Users see an unwanted "blank" or audio-only placeholder tile
+- **You cannot avoid subscription** - it's required for audio playback
 
-#### **Solution**
+### **The Solution: CSS-Based Hiding (Optional)**
 
-The client-side code detects and handles Audio Connector streams differently:
+The only way to hide the Audio Connector placeholder from the UI is to use CSS positioning and styling. Here's the recommended approach:
 
-```javascript
-// Detect Audio Connector streams by properties
-const isAudioConnector =
-  stream.hasAudio === true &&
-  stream.hasVideo === false &&
-  (!stream.name || stream.name.trim() === "");
+#### **Method 1: CSS Class Approach (Recommended)**
 
-if (isAudioConnector) {
-  // Create hidden container for audio-only subscription
-  const hiddenContainer = document.createElement("div");
-  hiddenContainer.style.cssText = `
-    position: absolute !important;
-    left: -10000px !important;
-    opacity: 0 !important;
-    visibility: hidden !important;
-    pointer-events: none !important;
-  `;
-  document.body.appendChild(hiddenContainer);
+**1. Add CSS to your stylesheet:**
 
-  // Subscribe for audio playback but keep hidden
-  session.subscribe(stream, hiddenContainer, {
-    subscribeToVideo: false,
-    subscribeToAudio: true,
-    insertMode: "replace",
-  });
-
-  return; // Skip normal subscription logic
+```css
+/* Audio Connector Hidden Container */
+.audio-connector-hidden {
+  position: absolute !important;
+  left: -10000px !important;
+  top: -10000px !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
 }
-
-// Normal participant handling for video + audio
-session.subscribe(stream, "subscriber", normalOptions);
 ```
 
-#### **Key Points**
+**2. Detect and handle Audio Connector streams:**
 
-- **Must subscribe** to Audio Connector stream to hear translated audio
-- **Hide completely** using off-screen container and CSS
-- **Audio-only subscription** (`subscribeToVideo: false`)
-- **Cleanup** hidden container when stream is destroyed
+```javascript
+session.on("streamCreated", function (event) {
+  const stream = event.stream;
 
-#### **Detection Logic**
+  // Audio Connector detection based on stream properties
+  const isAudioConnector =
+    stream.hasAudio === true &&
+    stream.hasVideo === false &&
+    (!stream.name || stream.name.trim() === "");
 
-Audio Connector streams are identified by:
+  if (isAudioConnector) {
+    // Create hidden container for Audio Connector
+    const hiddenContainer = document.createElement("div");
+    hiddenContainer.className = "audio-connector-hidden";
+    document.body.appendChild(hiddenContainer);
 
-- `hasAudio: true` (contains audio)
+    // Subscribe for audio playback but keep completely hidden
+    const subscriber = session.subscribe(stream, hiddenContainer, {
+      subscribeToVideo: false,
+      subscribeToAudio: true,
+      insertMode: "replace",
+      width: 1,
+      height: 1,
+    });
+
+    // Cleanup when stream is destroyed
+    subscriber.on("destroyed", function () {
+      if (hiddenContainer.parentNode) {
+        hiddenContainer.parentNode.removeChild(hiddenContainer);
+      }
+    });
+
+    return; // Skip normal subscription logic
+  }
+
+  // Handle regular participant streams normally
+  session.subscribe(stream, "subscriber", normalSubscribeOptions);
+});
+```
+
+#### **Method 2: Inline CSS Approach**
+
+```javascript
+// Alternative: Inline CSS approach
+const hiddenContainer = document.createElement("div");
+hiddenContainer.style.cssText = `
+  position: absolute !important;
+  left: -10000px !important;
+  top: -10000px !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+`;
+```
+
+### **Audio Connector Detection Logic**
+
+Audio Connector streams can be reliably identified by these properties:
+
+- `hasAudio: true` (contains audio for TTS playback)
 - `hasVideo: false` (no video component)
-- `!stream.name || stream.name.trim() === ""` (empty/missing name)
+- `!stream.name || stream.name.trim() === ""` (empty or undefined name)
 
-This approach ensures translated audio plays seamlessly while maintaining a clean UI for regular participant video streams.
+### **Why This Approach Works**
+
+1. **Required Subscription**: You must subscribe to hear the translated audio
+2. **Hidden Container**: Off-screen positioning keeps it invisible to users
+3. **Audio-Only**: `subscribeToVideo: false` prevents video processing
+4. **Resource Cleanup**: Proper removal when stream ends
+5. **No SDK Interference**: Works within SDK constraints
+
+### **Alternative: Embrace the Placeholder**
+
+Some applications choose to show the Audio Connector placeholder with a custom label like "Translation Audio" or "AI Assistant". This can be achieved by:
+
+1. Subscribing to a visible container
+2. Adding custom styling/labels
+3. Making it clear this is the translation system
+
+**Example:**
+
+```javascript
+// Show Audio Connector with custom styling
+const translationContainer = document.createElement("div");
+translationContainer.innerHTML = "<div>Translation Audio</div>";
+translationContainer.className = "translation-audio-display";
+
+session.subscribe(stream, translationContainer, options);
+```
+
+### **Key Takeaways**
+
+- ✅ **Subscription is mandatory** for audio playback
+- ✅ **CSS hiding is the only way** to hide the placeholder
+- ✅ **Detection by stream properties** is most reliable
+- ✅ **Cleanup is important** to prevent DOM/memory leaks
+- ✅ **Alternative approaches** exist if you want to show the placeholder
 
 ## **🚨 Troubleshooting**
 

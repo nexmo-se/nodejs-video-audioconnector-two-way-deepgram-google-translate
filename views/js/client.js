@@ -86,17 +86,7 @@ window.startSession = (sessionId, token, apiKey) => {
 
           // Create a completely hidden container for audio-only subscription
           const hiddenContainer = document.createElement("div");
-          hiddenContainer.style.cssText = `
-            position: absolute !important;
-            left: -10000px !important;
-            top: -10000px !important;
-            width: 1px !important;
-            height: 1px !important;
-            overflow: hidden !important;
-            opacity: 0 !important;
-            visibility: hidden !important;
-            pointer-events: none !important;
-          `;
+          hiddenContainer.className = "audio-connector-hidden";
           document.body.appendChild(hiddenContainer);
 
           // Subscribe to Audio Connector for translated audio playback
