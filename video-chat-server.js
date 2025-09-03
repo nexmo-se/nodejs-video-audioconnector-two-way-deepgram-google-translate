@@ -357,16 +357,47 @@ wsServer.on("connection", (websocket) => {
   /**
    * MESSAGE HANDLER - Routes different types of WebSocket messages
    *
-   * Message types:
-   * 1. "content-type" - Audio Connector setup (starts STT pipeline)
-   * 2. "set_id" - Client identification
-   * 3. "close_audio_connector" - Cleanup request
-   * 4. Binary data - Raw audio from video session → STT
+   * AUDIO CONNECTOR PROTOCOL (from Vonage Video API):
+   * 1. "content-type" field - First message from Audio Connector
+   *    - Source: Vonage Audio Connector WebSocket (automatic)
+   *    - Purpose: Initialize connection with audio format details
+   *    - Format: {"content-type":"audio/l16;rate=16000","event":"websocket:connected"}
+   *    - Documentation: https://tokbox.com/developer/guides/audio-connector#first-message
+   *    - Triggers: STT pipeline initialization with Deepgram
+   *
+   * 2. Binary audio data - Continuous stream from Audio Connector
+   *    - Source: Vonage Audio Connector WebSocket (automatic)
+   *    - Purpose: Raw PCM audio for transcription (640-byte frames, 20ms each)
+   *    - Format: Linear PCM 16-bit, 16kHz sample rate, 50 frames/second
+   *    - Documentation: https://tokbox.com/developer/guides/audio-connector#binary-audio-messages
+   *    - Triggers: STT→Translation→TTS pipeline processing
+   *
+   * CUSTOM CLIENT PROTOCOL (from index.ejs):
+   * 3. "set_id" command - Client identification message
+   *    - Source: index.ejs line 79 (sent on page load)
+   *    - Purpose: Register web client to receive transcription updates
+   *    - Format: {"command":"set_id","id":"client_<%=sessionId%>"}
+   *    - Triggers: Client registration for transcript broadcasting
+   *
+   * 4. "close_audio_connector" command - Cleanup request
+   *    - Source: index.ejs line 126 (sent on page unload/beforeunload)
+   *    - Purpose: Request shutdown of Audio Connector for session cleanup
+   *    - Format: {"command":"close_audio_connector","sessionid":"<%=sessionId%>"}
+   *    - Triggers: Audio Connector connection termination and resource cleanup
    */
   websocket.on("message", function message(data, isBinary) {
-    // ===== PIPELINE INITIALIZATION =====
+    // ===== AUDIO CONNECTOR INITIALIZATION (Vonage Video API) =====
     if (data.toString().includes("content-type")) {
-      // Audio Connector sends this when connecting to configure STT
+      /**
+       * AUDIO CONNECTOR SETUP MESSAGE
+       * This is the first message sent by Vonage Audio Connector when establishing connection.
+       * According to Audio Connector docs, it contains:
+       * - content-type: "audio/l16;rate=16000" (Linear PCM format)
+       * - event: "websocket:connected"
+       * - Any custom headers from the REST API call
+       *
+       * This message triggers the initialization of our STT pipeline.
+       */
       const messageData = JSON.parse(data);
       websocket.id = messageData["sessionid"];
 
@@ -538,9 +569,17 @@ wsServer.on("connection", (websocket) => {
       });
     }
 
-    // ===== CLIENT IDENTIFICATION =====
+    // ===== CLIENT IDENTIFICATION (from index.ejs line 79) =====
     else if (data.toString().includes("set_id")) {
-      // Web clients send this to identify themselves for receiving transcriptions
+      /**
+       * CLIENT REGISTRATION MESSAGE
+       * Sent by web clients to identify themselves for receiving transcription updates.
+       *
+       * Source: index.ejs line 79 - executed on page load
+       * Code: websocket.send(JSON.stringify({command:"set_id", id:"client_<%=sessionId%>"}));
+       * Purpose: Allows server to broadcast transcriptions to specific web clients
+       * Trigger: Page load event in browser
+       */
       const messageData = JSON.parse(data);
       const clientId = messageData["id"];
       websocket.id = clientId;
@@ -551,8 +590,17 @@ wsServer.on("connection", (websocket) => {
       });
     }
 
-    // ===== CLEANUP REQUEST =====
+    // ===== CLEANUP REQUEST (from index.ejs line 126) =====
     else if (data.toString().includes("close_audio_connector")) {
+      /**
+       * AUDIO CONNECTOR SHUTDOWN REQUEST
+       * Sent by web clients to request cleanup of Audio Connector resources.
+       *
+       * Source: index.ejs line 126 - executed on page unload/beforeunload
+       * Code: websocket.send(JSON.stringify({command:"close_audio_connector", sessionid:"<%=sessionId%>"}));
+       * Purpose: Graceful shutdown of Audio Connector to prevent resource leaks
+       * Trigger: Page unload/close events in browser
+       */
       const messageData = JSON.parse(data);
       const sessionId = messageData["sessionid"];
 
@@ -567,8 +615,20 @@ wsServer.on("connection", (websocket) => {
       });
     }
 
-    // ===== AUDIO DATA PROCESSING =====
+    // ===== BINARY AUDIO DATA PROCESSING (from Audio Connector) =====
     else {
+      /**
+       * AUDIO CONNECTOR BINARY DATA
+       * Raw PCM audio data sent continuously by Vonage Audio Connector.
+       *
+       * According to Audio Connector documentation:
+       * - Format: Linear PCM 16-bit, 16kHz sample rate
+       * - Frame size: 640 bytes (20ms of audio)
+       * - Frequency: 50 frames per second
+       * - Purpose: Real-time audio transcription and translation
+       *
+       * This audio data flows through our STT→Translation→TTS pipeline.
+       */
       /**
        * PIPELINE STEP 1: Audio Stream → STT
        * Raw audio data from Audio Connector sent to Deepgram for transcription

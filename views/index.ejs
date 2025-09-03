@@ -1,151 +1,271 @@
 <!DOCTYPE html>
 <html>
-	<head>
-		<link rel="stylesheet" href="/css/style.css" />
-		<!-- <script src="https://static.opentok.com/v2/js/opentok.min.js"></script> -->
-		<script src="/opentok-build-3.js"></script>
-		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-	
-	</head>
-	<body>
-		<div class="title" style="padding: 10px; background-color: white; height: 230px;">
-			Share this link for people to join<br /><input
-				type="text"
-				style="margin: 10px; width: calc(100% - 500px);"
-				id="link"
-				value="Starting Session"
-				readonly
-			/>
-			<button onclick="copyLink('link')">Copy Link</button><br /><br />
+  <head>
+    <link rel="stylesheet" href="/css/style.css" />
+    <!-- <script src="https://static.opentok.com/v2/js/opentok.min.js"></script> -->
+    <!-- Using local copy of OpenTok SDK -->
+    <script src="/opentok-build-3.js"></script>
+    <!-- jQuery for DOM manipulation and AJAX calls -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  </head>
+  <body>
+    <!-- SESSION MANAGEMENT PANEL: Links for joining and token generation -->
+    <div
+      class="title"
+      style="padding: 10px; background-color: white; height: 230px"
+    >
+      <!-- Shareable link for participants to join the video session -->
+      Share this link for people to join<br /><input
+        type="text"
+        style="margin: 10px; width: calc(100% - 500px)"
+        id="link"
+        value="Starting Session"
+        readonly
+      />
+      <button onclick="copyLink('link')">Copy Link</button><br /><br />
 
-			Use this link to create tokens<br /><input
-				type="text"
-				style="margin: 10px; width: calc(100% - 500px);"
-				id="token"
-				value="Starting Session"
-				readonly
-			/>
-			<button onclick="copyLink('token')">Copy Link</button><br /><br />
-		<br /><br />
-			
+      <!-- Link for generating additional tokens for this session -->
+      Use this link to create tokens<br /><input
+        type="text"
+        style="margin: 10px; width: calc(100% - 500px)"
+        id="token"
+        value="Starting Session"
+        readonly
+      />
+      <button onclick="copyLink('token')">Copy Link</button><br /><br />
+      <br /><br />
 
-			<span>
-				<button
-					id="deepgram_button"
-					style="color: white; padding: 5px; background-color: darkslategrey;"
-					onclick="toggleDeepgram()">
-					Start Deepgram</button>
-			</span>
+      <!-- DEEPGRAM CONTROL: Start/Stop real-time translation pipeline -->
+      <span>
+        <button
+          id="deepgram_button"
+          style="color: white; padding: 5px; background-color: darkslategrey"
+          onclick="toggleDeepgram()"
+        >
+          Start Deepgram
+        </button>
+      </span>
+    </div>
 
-		
-		</div>
+    <!-- VIDEO DISPLAY AREA: Containers for video streams -->
+    <div>
+      <!-- Remote participants' video streams -->
+      <div id="subscriber"></div>
+      <!-- Local user's video stream -->
+      <div id="publisher"></div>
+    </div>
 
-		<div>
-			<div id="subscriber"></div>
-			<div id="publisher"></div>
-		
-		</div>
-		
-		<div id="transcription" style="
-				height: 60px;
-				overflow: scroll;
-				bottom: 0;
-				position: absolute;
-				width: 100%;
-				background: seashell;
-				padding: 10px;
-				border-width: medium;
-				border-color: black;
-			">
-			<div id="deepgram">
-				<div>Transcription Log:<br></div>
-			</div>
-		</div>
-			
+    <!-- TRANSCRIPTION DISPLAY: Real-time translation results -->
+    <div
+      id="transcription"
+      style="
+        height: 60px;
+        overflow: scroll;
+        bottom: 0;
+        position: absolute;
+        width: 100%;
+        background: seashell;
+        padding: 10px;
+        border-width: medium;
+        border-color: black;
+      "
+    >
+      <div id="deepgram">
+        <div>Transcription Log:<br /></div>
+      </div>
+    </div>
 
-		<script src="/js/client.js"  type="module"></script>
-	</body>
+    <!-- CLIENT-SIDE VIDEO SESSION MANAGEMENT -->
+    <script src="/js/client.js" type="module"></script>
+  </body>
 </html>
 <script>
-	var deepgram_in_use = false;
-	$( document ).ready(function() {
-    	msg_div = document.getElementById( "transcription" );
+  /**
+   * REAL-TIME TRANSLATION VIDEO CHAT APPLICATION
+   *
+   * This application provides:
+   * 1. Multi-party video chat using Vonage Video API
+   * 2. Real-time speech transcription and translation via Deepgram + Google Translate
+   * 3. Audio injection of translated speech back into the video session
+   *
+   * Key Components:
+   * - WebSocket connection for transcription results and control messages
+   * - Video session management (handled by client.js)
+   * - Audio Connector integration for bidirectional audio processing
+   */
 
-	});
-	
-	var ws = new WebSocket("<%=websocket_server_uri%>");
-	ws.onopen = (event) => {
-		var msg = {
-				command : "set_id",
-				id : "client_<%=sessionId%>"
-			};
-	ws.send(JSON.stringify(msg));
-	}
-	
-	$(async function () {
-		startSession('<%=sessionId%>', '<%=token%>', '<%=appId%>').then(function (result) {
-			$('#link').val(window.location.protocol+"//" + window.location.hostname+'/<%=sessionId%>/join');
-			$('#token').val(window.location.protocol+"//" + window.location.hostname+'/<%=sessionId%>/token');
-		});
-	});
+  // Global state tracking for Deepgram translation pipeline
+  var deepgram_in_use = false;
 
-	function copyLink(id) {
-		var copyText = document.getElementById(id);
-		copyText.select();
-		copyText.setSelectionRange(0, 99999);
-		document.execCommand('copy');
-	}
+  // Initialize DOM references when page loads
+  $(document).ready(function () {
+    msg_div = document.getElementById("transcription");
+  });
 
+  /**
+   * WEBSOCKET CONNECTION SETUP
+   * Establishes connection to server for real-time transcription updates
+   * and Audio Connector control messages
+   */
+  var ws = new WebSocket("<%=websocket_server_uri%>");
+  ws.onopen = (event) => {
+    // CLIENT IDENTIFICATION MESSAGE - Processed by video-chat-server.js message handler
+    // Purpose: Register this web client to receive transcription updates from server
+    // Server processing: Handled in "set_id" section of WebSocket message handler
+    var msg = {
+      command: "set_id",
+      id: "client_<%=sessionId%>",
+    };
+    ws.send(JSON.stringify(msg));
+  };
 
-	function toggleDeepgram() {
-		var button = $('#deepgram_button');
-		//turn on
-		if (deepgram_in_use == false) {
-			button.text('Starting Deepgram');
-			button.css('background-color', 'Orange');
-			$.ajax({
-				method: 'GET',
-				url: '/<%=sessionId%>/audioconnect',
-			}).done(function (msg) {
-				deepgram_in_use = true;
-				console.log(msg);
-				button.text('Stop Deepgram');
-				button.css('background-color', 'darkgreen');
-			
-				
-				
-			}).fail(function (){
-				alert("Deepgram startup failed")
-				button.text('Start Deepgram');
-				button.css('background-color', 'darkslategrey');
-			});
+  /**
+   * VIDEO SESSION INITIALIZATION
+   * Sets up the Vonage Video session and populates shareable links
+   */
+  $(async function () {
+    // Initialize video session using parameters from server
+    startSession("<%=sessionId%>", "<%=token%>", "<%=appId%>").then(function (
+      result
+    ) {
+      // Generate shareable join link for participants
+      $("#link").val(
+        window.location.protocol +
+          "//" +
+          window.location.hostname +
+          "/<%=sessionId%>/join"
+      );
+      // Generate token creation link for additional participants
+      $("#token").val(
+        window.location.protocol +
+          "//" +
+          window.location.hostname +
+          "/<%=sessionId%>/token"
+      );
+    });
+  });
 
-		//turn off
-		} else {
-			var msg = {
-			    command : "close_audio_connector",
-			    sessionid : "<%=sessionId%>"
-			};
-			button.text('Start Deepgram');
-			button.css('background-color', 'darkslategrey');
-			deepgram_in_use = false
-			ws.send(JSON.stringify(msg));
-		}
-	}
+  /**
+   * UTILITY: Copy text to clipboard
+   * Used for sharing session links and token generation URLs
+   */
+  function copyLink(id) {
+    var copyText = document.getElementById(id);
+    copyText.select();
+    copyText.setSelectionRange(0, 99999);
+    document.execCommand("copy");
+  }
 
-	ws.onmessage = function( evt ) {
-		data = JSON.parse(evt.data)
-		console.log(data)
-		if(data.sessionid == "<%=sessionId%>"){
-			for (const [key, value] of Object.entries(data.messages)) {
-				console.log(key, value);
-				$("#deepgram").html($("#deepgram").html() + "<div>Speaker "+ key+" -> "+new Date().toLocaleTimeString()+" : "+value+"</div>");
-			}
-			
+  /**
+   * DEEPGRAM TRANSLATION CONTROL
+   * Toggles the real-time translation pipeline on/off
+   *
+   * ON: Starts Audio Connector → STT → Translation → TTS pipeline
+   * OFF: Stops Audio Connector and cleans up resources
+   */
+  function toggleDeepgram() {
+    var button = $("#deepgram_button");
 
-			$("#transcription").animate({ scrollTop: $('#transcription').prop("scrollHeight")}, 100);
-			
-		}
-		
-	};
+    // ===== START TRANSLATION PIPELINE =====
+    if (deepgram_in_use == false) {
+      // Update UI to show startup in progress
+      button.text("Starting Deepgram");
+      button.css("background-color", "Orange");
+
+      // Call server endpoint to start Audio Connector
+      // This triggers: Audio Connector creation → WebSocket connection → STT setup
+      $.ajax({
+        method: "GET",
+        url: "/<%=sessionId%>/audioconnect",
+      })
+        .done(function (msg) {
+          // Translation pipeline successfully started
+          deepgram_in_use = true;
+          console.log(msg);
+          button.text("Stop Deepgram");
+          button.css("background-color", "darkgreen");
+        })
+        .fail(function () {
+          // Audio Connector startup failed
+          alert("Deepgram startup failed");
+          button.text("Start Deepgram");
+          button.css("background-color", "darkslategrey");
+        });
+
+      // ===== STOP TRANSLATION PIPELINE =====
+    } else {
+      // CLEANUP REQUEST MESSAGE - Processed by video-chat-server.js message handler
+      // Purpose: Request shutdown of Audio Connector to prevent resource leaks
+      // Server processing: Handled in "close_audio_connector" section of WebSocket message handler
+      // Trigger: User clicks "Stop Deepgram" button or page unload events
+      var msg = {
+        command: "close_audio_connector",
+        sessionid: "<%=sessionId%>",
+      };
+
+      // Update UI and state immediately
+      button.text("Start Deepgram");
+      button.css("background-color", "darkslategrey");
+      deepgram_in_use = false;
+
+      // Send shutdown request to server
+      ws.send(JSON.stringify(msg));
+    }
+  }
+
+  /**
+   * TRANSCRIPTION DISPLAY HANDLER
+   * Receives and displays real-time transcription/translation results from the server
+   *
+   * Message Flow: Audio Connector → STT → Translation → TTS → This Handler
+   *
+   * Expected message format from server:
+   * {
+   *   sessionid: "session123",
+   *   messages: {
+   *     "0": "Translated text from speaker 0",
+   *     "1": "Translated text from speaker 1"
+   *   }
+   * }
+   *
+   * Processing steps:
+   * 1. Parse incoming JSON message
+   * 2. Validate message is for current session
+   * 3. Loop through each speaker's translated text
+   * 4. Display formatted message with speaker ID and timestamp
+   * 5. Auto-scroll to show latest messages
+   */
+  ws.onmessage = function (evt) {
+    // Parse the JSON message containing transcription results
+    data = JSON.parse(evt.data);
+    console.log(data);
+
+    // Only process messages for the current session (security check)
+    if (data.sessionid == "<%=sessionId%>") {
+      // Loop through each speaker's translated message
+      // Key = Speaker ID (0, 1, 2, etc.), Value = Translated text
+      for (const [key, value] of Object.entries(data.messages)) {
+        console.log(key, value);
+
+        // Append formatted message to transcription display
+        // Format: "Speaker X -> HH:MM:SS AM/PM : Translated text"
+        $("#deepgram").html(
+          $("#deepgram").html() +
+            "<div>Speaker " +
+            key +
+            " -> " +
+            new Date().toLocaleTimeString() +
+            " : " +
+            value +
+            "</div>"
+        );
+      }
+
+      // Auto-scroll transcription panel to show newest messages
+      $("#transcription").animate(
+        { scrollTop: $("#transcription").prop("scrollHeight") },
+        100
+      );
+    }
+  };
 </script>
