@@ -55,6 +55,47 @@
       <div id="publisher"></div>
     </div>
 
+    <!-- ENHANCED USER & LANGUAGE MANAGEMENT -->
+    <div
+      id="user-info-container"
+      style="
+        margin-bottom: 1em;
+        background: #f0f0f0;
+        padding: 10px;
+        border-radius: 5px;
+      "
+    >
+      <div>
+        <strong>Your Connection ID:</strong>
+        <span id="user-id-display">Loading...</span>
+      </div>
+      <div style="margin-top: 5px">
+        <label for="preferred_language">Your Preferred Language:</label>
+        <select id="preferred_language">
+          <option value="en">English</option>
+          <option value="es">Spanish</option>
+          <option value="fr">French</option>
+          <option value="de">German</option>
+          <option value="hi">Hindi</option>
+          <option value="ru">Russian</option>
+          <option value="pt">Portuguese</option>
+          <option value="ja">Japanese</option>
+          <option value="it">Italian</option>
+          <option value="nl">Dutch</option>
+          <!-- Add more supported languages as needed -->
+        </select>
+        <button id="set_language_btn" style="margin-left: 10px">
+          Set Language
+        </button>
+      </div>
+      <div style="margin-top: 5px; font-size: 0.9em; color: #666">
+        <em
+          >Other users will hear your speech translated into their preferred
+          language</em
+        >
+      </div>
+    </div>
+
     <!-- TRANSCRIPTION DISPLAY: Real-time translation results -->
     <div
       id="transcription"
@@ -88,40 +129,79 @@
    * 2. Real-time speech transcription and translation via Deepgram + Google Translate
    * 3. Audio injection of translated speech back into the video session
    *
+   * ENHANCED: Multi-user architecture with per-user Audio Connectors
+   *
    * Key Components:
    * - WebSocket connection for transcription results and control messages
    * - Video session management (handled by client.js)
-   * - Audio Connector integration for bidirectional audio processing
+   * - Per-user Audio Connector integration for isolated audio processing
    */
 
   // Global state tracking for Deepgram translation pipeline
   var deepgram_in_use = false;
 
+  // User ID will be set to the publisher's connectionId once video session is established
+  var userId = null;
+  var publisher = null;
+  var session = null;
+  console.log("Waiting for video session to establish connectionId...");
+
   // Initialize DOM references when page loads
   $(document).ready(function () {
     msg_div = document.getElementById("transcription");
+
+    // User ID will be set once video session connects
+    document.getElementById("user-id-display").textContent =
+      "Connecting to video session...";
   });
 
   /**
-   * WEBSOCKET CONNECTION SETUP
+   * ENHANCED WEBSOCKET CONNECTION SETUP
    * Establishes connection to server for real-time transcription updates
-   * and Audio Connector control messages
+   * and Audio Connector control messages with user identification
+   * NOW CALLED AFTER video session establishes connectionId
    */
-  var ws = new WebSocket("<%=websocket_server_uri%>");
-  ws.onopen = (event) => {
-    // CLIENT IDENTIFICATION MESSAGE - Processed by video-chat-server.js message handler
-    // Purpose: Register this web client to receive transcription updates from server
-    // Server processing: Handled in "set_id" section of WebSocket message handler
-    var msg = {
-      command: "set_id",
-      id: "client_<%=sessionId%>",
+  var ws = null;
+
+  function initializeWebSocket() {
+    if (!userId) {
+      console.error("Cannot initialize WebSocket without userId");
+      return;
+    }
+
+    ws = new WebSocket("<%=websocket_server_uri%>");
+    ws.onopen = (event) => {
+      // ENHANCED CLIENT IDENTIFICATION MESSAGE - Now uses connectionId as userId
+      // Purpose: Register this web client to receive transcription updates from server
+      // Server processing: Handled in "set_id" section of WebSocket message handler
+      var msg = {
+        command: "set_id",
+        id: "client_<%=sessionId%>",
+        userId: userId, // Now using Vonage connectionId as user ID
+        sessionId: "<%=sessionId%>",
+      };
+      ws.send(JSON.stringify(msg));
+      console.log("WebSocket connected with connectionId as userId:", userId);
     };
-    ws.send(JSON.stringify(msg));
-  };
+
+    // Set up message handler
+    ws.onmessage = handleWebSocketMessage;
+
+    // Set up error handler
+    ws.onerror = function (error) {
+      console.error("WebSocket error:", error);
+    };
+
+    // Set up close handler
+    ws.onclose = function (event) {
+      console.log("WebSocket closed:", event.code, event.reason);
+    };
+  }
 
   /**
    * VIDEO SESSION INITIALIZATION
    * Sets up the Vonage Video session and populates shareable links
+   * ENHANCED: Extracts connectionId for use as userId
    */
   $(async function () {
     // Initialize video session using parameters from server
@@ -142,6 +222,28 @@
           window.location.hostname +
           "/<%=sessionId%>/token"
       );
+
+      // ENHANCED: Extract connectionId from the video session
+      // The startSession function should return the session and publisher objects
+      // We'll need to modify this to get the connectionId
+      if (window.currentSession && window.currentPublisher) {
+        session = window.currentSession;
+        publisher = window.currentPublisher;
+
+        // Use the publisher's connection ID as our user ID
+        userId = session.connection.connectionId;
+        console.log("Using connectionId as userId:", userId);
+
+        // Update the UI to show the connectionId
+        document.getElementById("user-id-display").textContent = userId;
+
+        // Now that we have a userId, we can establish WebSocket connection
+        initializeWebSocket();
+      } else {
+        console.error(
+          "Could not get session/publisher objects from startSession"
+        );
+      }
     });
   });
 
@@ -157,14 +259,20 @@
   }
 
   /**
-   * DEEPGRAM TRANSLATION CONTROL
-   * Toggles the real-time translation pipeline on/off
+   * ENHANCED DEEPGRAM TRANSLATION CONTROL
+   * Toggles the real-time translation pipeline on/off using per-user Audio Connectors
    *
-   * ON: Starts Audio Connector → STT → Translation → TTS pipeline
-   * OFF: Stops Audio Connector and cleans up resources
+   * ON: Starts Per-User Audio Connector → STT → Translation → TTS pipeline
+   * OFF: Stops user's Audio Connector and cleans up resources
    */
   function toggleDeepgram() {
     var button = $("#deepgram_button");
+
+    // Check if we have a userId (connectionId) before proceeding
+    if (!userId) {
+      alert("Please wait for video session to connect first");
+      return;
+    }
 
     // ===== START TRANSLATION PIPELINE =====
     if (deepgram_in_use == false) {
@@ -172,35 +280,49 @@
       button.text("Starting Deepgram");
       button.css("background-color", "Orange");
 
-      // Call server endpoint to start Audio Connector
-      // This triggers: Audio Connector creation → WebSocket connection → STT setup
+      // Call per-user endpoint to start Audio Connector
+      // NOW: Uses connectionId as userId for individual user processing
+      // This triggers: Per-user Audio Connector creation → WebSocket connection → STT setup
       $.ajax({
         method: "GET",
-        url: "/<%=sessionId%>/audioconnect",
+        url: "/<%=sessionId%>/audioconnect/" + userId,
       })
         .done(function (msg) {
           // Translation pipeline successfully started
           deepgram_in_use = true;
-          console.log(msg);
+          console.log(
+            "Per-user Audio Connector started for connectionId:",
+            userId,
+            msg
+          );
           button.text("Stop Deepgram");
           button.css("background-color", "darkgreen");
+
+          // Display user info
+          $("#deepgram").html(
+            $("#deepgram").html() +
+              "<div><strong>Connection " +
+              userId +
+              " joined translation pipeline</strong></div>"
+          );
         })
-        .fail(function () {
+        .fail(function (xhr, status, error) {
           // Audio Connector startup failed
-          alert("Deepgram startup failed");
+          console.error("Per-user Audio Connector startup failed:", error);
+          alert("Deepgram startup failed: " + error);
           button.text("Start Deepgram");
           button.css("background-color", "darkslategrey");
         });
 
       // ===== STOP TRANSLATION PIPELINE =====
     } else {
-      // CLEANUP REQUEST MESSAGE - Processed by video-chat-server.js message handler
-      // Purpose: Request shutdown of Audio Connector to prevent resource leaks
+      // ENHANCED CLEANUP REQUEST MESSAGE
+      // Purpose: Request shutdown of user's Audio Connector to prevent resource leaks
       // Server processing: Handled in "close_audio_connector" section of WebSocket message handler
-      // Trigger: User clicks "Stop Deepgram" button or page unload events
       var msg = {
         command: "close_audio_connector",
         sessionid: "<%=sessionId%>",
+        userid: userId, // Using connectionId for proper cleanup
       };
 
       // Update UI and state immediately
@@ -209,56 +331,98 @@
       deepgram_in_use = false;
 
       // Send shutdown request to server
-      ws.send(JSON.stringify(msg));
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(msg));
+      }
+
+      console.log(
+        "Stopping per-user Audio Connector for connectionId:",
+        userId
+      );
     }
   }
 
   /**
-   * TRANSCRIPTION DISPLAY HANDLER
-   * Receives and displays real-time transcription/translation results from the server
+   * ENHANCED TRANSCRIPTION DISPLAY HANDLER
+   * Receives and displays real-time transcription/translation results from the multi-user server
    *
-   * Message Flow: Audio Connector → STT → Translation → TTS → This Handler
+   * Message Flow: Per-User Audio Connector → STT → Translation → TTS → This Handler
    *
-   * Expected message format from server:
-   * {
-   *   sessionid: "session123",
-   *   messages: {
-   *     "0": "Translated text from speaker 0",
-   *     "1": "Translated text from speaker 1"
-   *   }
-   * }
-   *
-   * Processing steps:
-   * 1. Parse incoming JSON message
-   * 2. Validate message is for current session
-   * 3. Loop through each speaker's translated text
-   * 4. Display formatted message with speaker ID and timestamp
-   * 5. Auto-scroll to show latest messages
+   * Expected message formats from server:
+   * 1. Legacy format: { sessionid: "session123", messages: { "0": "text" } }
+   * 2. New multi-user format: {
+   *      type: "transcription",
+   *      speakerUserId: "connectionId_abc123",
+   *      translatedText: "Hello world",
+   *      sourceLanguage: "es",
+   *      targetLanguage: "en"
+   *    }
+   * 3. User language changes: {
+   *      type: "user_language_changed",
+   *      userId: "connectionId_abc123",
+   *      language: "es"
+   *    }
    */
-  ws.onmessage = function (evt) {
+  function handleWebSocketMessage(evt) {
     // Parse the JSON message containing transcription results
-    data = JSON.parse(evt.data);
-    console.log(data);
+    try {
+      data = JSON.parse(evt.data);
+      console.log("Received message:", data);
 
-    // Only process messages for the current session (security check)
-    if (data.sessionid == "<%=sessionId%>") {
-      // Loop through each speaker's translated message
-      // Key = Speaker ID (0, 1, 2, etc.), Value = Translated text
-      for (const [key, value] of Object.entries(data.messages)) {
-        console.log(key, value);
+      // Handle different message types
+      if (data.type === "transcription") {
+        // NEW: Multi-user transcription format with connectionId
+        const speakerName =
+          data.speakerUserId === userId
+            ? "You"
+            : `Connection ${data.speakerUserId}`;
+        const timestamp = data.timestamp || new Date().toLocaleTimeString();
 
-        // Append formatted message to transcription display
-        // Format: "Speaker X -> HH:MM:SS AM/PM : Translated text"
+        // Display formatted message with language info
         $("#deepgram").html(
           $("#deepgram").html() +
-            "<div>Speaker " +
-            key +
-            " -> " +
-            new Date().toLocaleTimeString() +
+            "<div><strong>" +
+            speakerName +
+            "</strong> (" +
+            data.sourceLanguage +
+            "→" +
+            data.targetLanguage +
+            ") -> " +
+            timestamp +
             " : " +
-            value +
+            data.translatedText +
             "</div>"
         );
+      } else if (data.type === "user_language_changed") {
+        // Handle language preference changes from other users
+        if (data.userId !== userId) {
+          $("#deepgram").html(
+            $("#deepgram").html() +
+              "<div><em>Connection " +
+              data.userId +
+              " changed language to " +
+              data.language +
+              "</em></div>"
+          );
+        }
+      } else if (data.sessionid == "<%=sessionId%>") {
+        // LEGACY: Handle old message format for backward compatibility
+        // Only process messages for the current session (security check)
+        for (const [key, value] of Object.entries(data.messages || {})) {
+          console.log("Legacy message:", key, value);
+
+          // Append formatted message to transcription display
+          $("#deepgram").html(
+            $("#deepgram").html() +
+              "<div>Speaker " +
+              key +
+              " -> " +
+              new Date().toLocaleTimeString() +
+              " : " +
+              value +
+              "</div>"
+          );
+        }
       }
 
       // Auto-scroll transcription panel to show newest messages
@@ -266,6 +430,77 @@
         { scrollTop: $("#transcription").prop("scrollHeight") },
         100
       );
+    } catch (error) {
+      console.error("Error parsing WebSocket message:", error);
+    }
+  }
+
+  // ENHANCED SET PREFERRED LANGUAGE BUTTON HANDLER
+  document.getElementById("set_language_btn").onclick = function () {
+    const lang = document.getElementById("preferred_language").value;
+
+    if (!userId) {
+      alert("Please wait for video session to connect first");
+      return;
+    }
+
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      // Send enhanced language preference with connectionId as userId
+      ws.send(
+        JSON.stringify({
+          command: "set_preferred_language",
+          sessionid: "<%=sessionId%>",
+          userid: userId, // Using connectionId for multi-user tracking
+          language: lang,
+        })
+      );
+      localStorage.setItem("preferred_language", lang);
+
+      // Show confirmation in UI
+      $("#deepgram").html(
+        $("#deepgram").html() +
+          "<div><strong>Your language preference set to: " +
+          lang +
+          "</strong></div>"
+      );
+
+      // Auto-scroll to show the update
+      $("#transcription").animate(
+        { scrollTop: $("#transcription").prop("scrollHeight") },
+        100
+      );
+
+      console.log(
+        "Language preference set:",
+        lang,
+        "for connectionId:",
+        userId
+      );
+    } else {
+      alert("WebSocket not connected. Please refresh the page.");
     }
   };
+
+  // Auto-select last used language on page load
+  document.addEventListener("DOMContentLoaded", function () {
+    const savedLang = localStorage.getItem("preferred_language");
+    if (savedLang) {
+      const select = document.getElementById("preferred_language");
+      if (select) select.value = savedLang;
+    }
+  });
+
+  // Enhanced cleanup on page unload for multi-user architecture
+  window.addEventListener("beforeunload", function (e) {
+    if (deepgram_in_use && ws && ws.readyState === WebSocket.OPEN && userId) {
+      // Send cleanup message for this specific connectionId
+      var msg = {
+        command: "close_audio_connector",
+        sessionid: "<%=sessionId%>",
+        userid: userId,
+      };
+      ws.send(JSON.stringify(msg));
+      console.log("Cleanup sent for connectionId:", userId);
+    }
+  });
 </script>

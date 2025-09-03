@@ -50,6 +50,28 @@ function updateEnvFile(key, value) {
     serverProcess.on("close", (code) => {
       console.log(`Server process exited with code ${code}`);
     });
+
+    // Display ngrok URL prominently after server starts
+    setTimeout(() => {
+      console.log("\n" + "=".repeat(60));
+      console.log(`🌐 APPLICATION READY!`);
+      console.log(`📱 Open in browser: ${url}`);
+      console.log(`🔗 ngrok URL: ${url}`);
+      console.log(`🔌 WebSocket URL: ${websocketUrl}`);
+      console.log("=".repeat(60) + "\n");
+    }, 1000);
+
+    // Show ngrok URL reminder every 30 seconds
+    const urlReminder = setInterval(() => {
+      console.log(`\n🔗 ngrok URL: ${url}\n`);
+    }, 30000);
+
+    // Clean up on process exit
+    process.on("SIGINT", () => {
+      clearInterval(urlReminder);
+      ngrok.disconnect();
+      process.exit();
+    });
   } catch (error) {
     console.error(`Error with ngrok: ${error.message}`);
   }

@@ -8,6 +8,10 @@ var stream_name = "video";
 // Audio Connector stream name for translated audio playback
 const AUDIO_CONNECTOR_STREAM_NAME = "translated_audio_connector";
 
+// Global variables to expose session and publisher for connectionId access
+window.currentSession = null;
+window.currentPublisher = null;
+
 // Connect to a video session with proper stream handling
 window.startSession = (sessionId, token, apiKey) => {
   const queryString = window.location.search;
@@ -39,6 +43,10 @@ window.startSession = (sessionId, token, apiKey) => {
 
   // Initialize and connect to Vonage session
   session = OT.initSession(apiKey, sessionId);
+
+  // Store session globally for connectionId access
+  window.currentSession = session;
+
   session.connect(token, async function (err) {
     if (err) {
       console.log("Session connection error:", err);
@@ -46,7 +54,12 @@ window.startSession = (sessionId, token, apiKey) => {
     } else {
       // Publish this client's stream
       session.publish(publisher);
+
+      // Store publisher globally for connectionId access
+      window.currentPublisher = publisher;
+
       console.log("Published local stream successfully");
+      console.log("Connection ID:", session.connection.connectionId);
 
       deferred.resolve(true);
 
