@@ -336,6 +336,34 @@ app.get("/:sessionId/audioconnect/:userId", async function (req, res) {
       userId,
     });
 
+    // Check if user already has an active Audio Connector
+    let existingConnection = null;
+    wsServer.clients.forEach(function each(client) {
+      if (
+        client.sessionId === sessionId &&
+        client.userId === userId &&
+        client.isAudioConnector &&
+        client.readyState === client.OPEN
+      ) {
+        existingConnection = client;
+      }
+    });
+
+    if (existingConnection) {
+      log.warning("User already has active Audio Connector", {
+        sessionId,
+        userId,
+        connectionId: existingConnection.id,
+      });
+      return res.json({
+        success: true,
+        message: "Audio Connector already active for this user",
+        userId: userId,
+        connectionId: existingConnection.id,
+        alreadyActive: true,
+      });
+    }
+
     token = videoClient.generateClientToken(sessionId);
 
     // Connect Audio Connector for this specific user
@@ -643,6 +671,9 @@ wsServer.on("connection", (websocket, request) => {
           diarize: false, // No diarization
         });
 
+        // Store the Deepgram connection with this WebSocket for cleanup
+        websocket.dgConnection = dgConnection;
+
         log.pipeline("1", "Deepgram STT configured with basic settings", {
           language: "Multi-language (for Spanish→English translation)",
           model: "nova-2",
@@ -895,15 +926,43 @@ wsServer.on("connection", (websocket, request) => {
                   textLength: translationResult.text.length + " chars",
                 });
 
-                // Only generate TTS if the detected language is different from target language
-                if (translationResult.from?.language?.iso !== user.language) {
-                  // Create Text-to-Speech for this user
+                // Get speaker's language preference for comparison
+                const speakerLanguage =
+                  sessionUsers.has(sessionId) &&
+                  sessionUsers.get(sessionId).has(speakerUserId)
+                    ? sessionUsers.get(sessionId).get(speakerUserId).language
+                    : null;
+
+                // Generate TTS if speaker's language preference is different from target user's language preference
+                if (speakerLanguage !== user.language) {
+                  // Select appropriate voice model based on target language
+                  const getVoiceModel = (language) => {
+                    const voiceMap = {
+                      en: "aura-asteria-en", // English - Natural female voice
+                      es: "aura-asteria-en", // Spanish - Use English model for compatibility
+                      fr: "aura-stella-fr", // French - Natural female voice
+                      de: "aura-asteria-en", // German - Use English model for now
+                      pt: "aura-asteria-en", // Portuguese - Use English model for now
+                      it: "aura-asteria-en", // Italian - Use English model for now
+                      ja: "aura-asteria-en", // Japanese - Use English model for now
+                      hi: "aura-asteria-en", // Hindi - Use English model for now
+                      ru: "aura-asteria-en", // Russian - Use English model for now
+                      nl: "aura-asteria-en", // Dutch - Use English model for now
+                    };
+                    return voiceMap[language] || "aura-asteria-en"; // Default to English
+                  };
+
+                  const voiceModel = getVoiceModel(user.language);
+
+                  // Create Text-to-Speech for this user with optimized settings
                   const response = await deepgram.speak.request(
                     { text: translationResult.text },
                     {
-                      model: "aura-asteria-en", // TODO: Use language-specific models
+                      model: voiceModel,
                       encoding: "linear16",
                       container: "wav",
+                      sample_rate: 16000, // Match Audio Connector sample rate
+                      bit_depth: 16, // High quality audio
                     }
                   );
 
@@ -911,6 +970,8 @@ wsServer.on("connection", (websocket, request) => {
                   if (!stream) {
                     log.error("No audio stream received from Deepgram TTS", {
                       targetUserId: user.userId,
+                      voiceModel: voiceModel,
+                      targetLanguage: user.language,
                       text: translationResult.text,
                     });
                     continue;
@@ -919,7 +980,9 @@ wsServer.on("connection", (websocket, request) => {
                   log.pipeline("4", "TTS generated for user", {
                     speakerUserId: speakerUserId,
                     targetUserId: user.userId,
+                    voiceModel: voiceModel,
                     language: user.language,
+                    textLength: translationResult.text.length + " chars",
                   });
 
                   // Send TTS audio to this specific user's Audio Connector
@@ -938,11 +1001,12 @@ wsServer.on("connection", (websocket, request) => {
                     });
                   }
                 } else {
-                  log.info("Skipping TTS - same language detected", {
+                  log.info("Skipping TTS - same language preference", {
                     speakerUserId: speakerUserId,
                     targetUserId: user.userId,
-                    detectedLang: translationResult.from?.language?.iso,
+                    speakerLang: speakerLanguage,
                     targetLang: user.language,
+                    note: "Both users have same language preference",
                   });
                 }
 
@@ -1122,9 +1186,30 @@ wsServer.on("connection", (websocket, request) => {
 
       // Close Audio Connector connection and cleanup resources
       wsServer.clients.forEach(function each(client) {
-        if (client.id === sessionId) {
-          client.close(); // This will also close the Deepgram connection
-          log.success("Audio Connector connection closed", { sessionId });
+        if (client.sessionId === sessionId && client.isAudioConnector) {
+          log.info("Closing Audio Connector", {
+            connectionId: client.id,
+            userId: client.userId,
+            sessionId: client.sessionId,
+          });
+
+          // Close Deepgram connection if exists
+          if (
+            client.dgConnection &&
+            client.dgConnection.getReadyState() === 1
+          ) {
+            client.dgConnection.requestClose();
+            log.info("Deepgram connection closed for Audio Connector", {
+              connectionId: client.id,
+            });
+          }
+
+          // Close the WebSocket connection
+          client.close();
+          log.success("Audio Connector connection closed", {
+            connectionId: client.id,
+            sessionId,
+          });
         }
       });
     }
@@ -1147,9 +1232,12 @@ wsServer.on("connection", (websocket, request) => {
        * PIPELINE STEP 1: Audio Stream → STT
        * Raw audio data from Audio Connector sent to Deepgram for transcription
        */
-      if (dgConnection != null && dgConnection.getReadyState() == 1) {
+      if (
+        websocket.dgConnection != null &&
+        websocket.dgConnection.getReadyState() == 1
+      ) {
         try {
-          dgConnection.send(data); // Forward audio to Deepgram STT
+          websocket.dgConnection.send(data); // Forward audio to Deepgram STT
           // Only log audio data periodically to avoid spam
           if (Math.random() < 0.001) {
             // Log ~0.1% of audio packets
@@ -1158,24 +1246,24 @@ wsServer.on("connection", (websocket, request) => {
         } catch (audioError) {
           log.error("Failed to send audio to Deepgram", {
             error: audioError.message,
-            dgConnectionState: dgConnection.getReadyState(),
+            dgConnectionState: websocket.dgConnection.getReadyState(),
           });
         }
       } else {
         // Only log connection state issues occasionally to avoid spam
         if (Math.random() < 0.01) {
           // Log ~1% of failed audio packets
-          if (dgConnection == null) {
+          if (websocket.dgConnection == null) {
             log.warning("Deepgram connection is null, cannot send audio");
           } else {
             log.warning("Deepgram connection not ready, buffering audio", {
-              state: dgConnection.getReadyState(),
+              state: websocket.dgConnection.getReadyState(),
               stateDescription:
-                dgConnection.getReadyState() === 0
+                websocket.dgConnection.getReadyState() === 0
                   ? "CONNECTING"
-                  : dgConnection.getReadyState() === 2
+                  : websocket.dgConnection.getReadyState() === 2
                   ? "CLOSING"
-                  : dgConnection.getReadyState() === 3
+                  : websocket.dgConnection.getReadyState() === 3
                   ? "CLOSED"
                   : "UNKNOWN",
             });
@@ -1224,8 +1312,8 @@ wsServer.on("connection", (websocket, request) => {
     }
 
     // Clean up Deepgram connection
-    if (dgConnection != null) {
-      dgConnection.requestClose();
+    if (websocket.dgConnection != null) {
+      websocket.dgConnection.requestClose();
       log.info("Deepgram connection cleaned up", {
         userId: websocket.userId,
       });
