@@ -724,7 +724,7 @@ wsServer.on("connection", (websocket, request) => {
           "Deepgram STT configured with language-optimized settings",
           {
             userLanguage: userLanguage || "not set",
-            deepgramLanguage: deepgramLanguage,
+            deepgramSTTLanguage: deepgramLanguage, // Actual language sent to Deepgram
             model: "nova-2",
             sampleRate: "16kHz",
             encoding: "linear16",
@@ -732,8 +732,9 @@ wsServer.on("connection", (websocket, request) => {
             interimResults: "disabled (final only)",
             smartFormat: "enabled",
             note: userLanguage
-              ? "Using user's preferred language for better accuracy"
+              ? `Using ${userLanguage} → ${deepgramLanguage} for better STT accuracy`
               : "Using multi-language detection",
+            stttLanguageFlow: `User selected "${userLanguage}" → Deepgram STT gets "${deepgramLanguage}"`,
           }
         );
       } catch (configError) {
@@ -819,10 +820,7 @@ wsServer.on("connection", (websocket, request) => {
               confidence: data.channel.alternatives[0].confidence,
               userId: userId,
               userLanguage: userLanguage || "not set",
-              deepgramLanguage:
-                userLanguage && userLanguage !== "multi"
-                  ? userLanguage
-                  : "multi-language",
+              deepgramSTTLanguage: deepgramLanguage, // Shows actual language sent to Deepgram STT
             });
           }
 
@@ -1015,6 +1013,10 @@ wsServer.on("connection", (websocket, request) => {
                 log.pipeline("3", "Translation completed", {
                   speakerUserId: speakerUserId,
                   targetUserId: user.userId,
+                  speakerLanguage: speakerLanguage || "auto",
+                  targetLanguage: user.language,
+                  googleTranslateFrom: speakerLanguage || "auto-detect",
+                  googleTranslateTo: user.language,
                   fromLang:
                     translationResult.from?.language?.iso ||
                     speakerLanguage ||
@@ -1075,7 +1077,21 @@ wsServer.on("connection", (websocket, request) => {
 
                   const voiceModel = getVoiceModel(user.language);
 
-                  // Create Text-to-Speech for this user with optimized settings
+                  log.pipeline("4-TTS", "Voice model selected for TTS", {
+                    targetUserId: user.userId,
+                    targetUserLanguage: user.language,
+                    selectedVoiceModel: voiceModel,
+                    isNativeVoice:
+                      user.language === "en" || user.language === "es",
+                    ttsLanguageFlow:
+                      user.language === "en" || user.language === "es"
+                        ? `${user.language} → Native ${voiceModel} voice`
+                        : `${user.language} → English voice (Deepgram limitation)`,
+                    note:
+                      user.language === "en" || user.language === "es"
+                        ? "Native voice available"
+                        : "Using English voice - text is correctly translated but accent is English",
+                  }); // Create Text-to-Speech for this user with optimized settings
                   const response = await deepgram.speak.request(
                     { text: translationResult.text },
                     {

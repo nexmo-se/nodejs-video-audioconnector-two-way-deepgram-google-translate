@@ -25,8 +25,24 @@ User 2 (Language B) ←→ Audio Connector 2 ←→ Language-Aware STT→Transla
 1. **Individual Audio Capture**: Each user has dedicated Audio Connector
 2. **Language-Aware STT**: User audio → Deepgram STT (user's preferred language) → Transcribed text
 3. **Smart Translation**: Source text → Google Translate (with language hints) → Target text
-4. **TTS**: Translated text → Deepgram TTS (target language voice) → Audio stream
+4. **TTS with Voice Limitations**: Translated text → Deepgram TTS (limited voice selection) → Audio stream
 5. **Bidirectional Playback**: Audio stream → Target user's Audio Connector
+
+### **⚠️ Important: TTS Voice Limitations**
+
+**Deepgram TTS Language Support:**
+
+- ✅ **English**: Native `aura-2-asteria-en` voice
+- ✅ **Spanish**: Native `aura-2-celeste-es` voice
+- ❌ **All Other Languages**: Use English voice speaking translated text
+
+**Real-World Example:**
+
+- French user speaks: "Bonjour" → STT: Perfect French transcription
+- Translation: "Bonjour" → "Hello" (accurate)
+- German user hears: English voice saying "Hello" (not German accent)
+
+This is a **Deepgram limitation**, not a system bug. Text translation is perfect; voice accent is limited.
 
 ### **Key Language Improvements:**
 
@@ -56,13 +72,44 @@ User 2 (Language B) ←→ Audio Connector 2 ←→ Language-Aware STT→Transla
 - **Multi-Language Fallback**: Unknown languages use multi-language detection with auto-translation
 - **Smart Translation**: Uses speaker's language preference as source hint for improved accuracy
 
-### **Voice Model Configuration**
+### **📊 Complete Language Support Matrix**
 
-The system uses optimized Aura-2 voice models:
+| Language       | STT Quality        | Translation | TTS Voice         | User Experience               |
+| -------------- | ------------------ | ----------- | ----------------- | ----------------------------- |
+| **English**    | ✅ Native `en-US`  | ✅ Perfect  | ✅ Native English | **Perfect**                   |
+| **Spanish**    | ✅ Native `es`     | ✅ Perfect  | ✅ Native Spanish | **Perfect**                   |
+| **French**     | ✅ Native `fr`     | ✅ Perfect  | ❌ English voice  | **Good text, foreign accent** |
+| **German**     | ✅ Native `de`     | ✅ Perfect  | ❌ English voice  | **Good text, foreign accent** |
+| **Chinese**    | ✅ Native `zh-CN`  | ✅ Perfect  | ❌ English voice  | **Good text, foreign accent** |
+| **All Others** | ✅ Native or Multi | ✅ Perfect  | ❌ English voice  | **Good text, foreign accent** |
+
+**Key Takeaway**: Translation accuracy is perfect for all languages. Voice accent limitations only affect audio playback experience.
+
+### **Voice Model Configuration & Limitations**
+
+The system uses Deepgram Aura-2 voice models with **significant language limitations**:
+
+**Available TTS Voices:**
 
 - **English TTS**: `aura-2-asteria-en` (Clear, confident, energetic female voice)
 - **Spanish TTS**: `aura-2-celeste-es` (Clear, energetic Colombian female voice)
-- **Fallback**: All other languages use English TTS voice for audio output
+
+**TTS Fallback Limitation:**
+
+- **All other languages** (French, German, Chinese, etc.) use English TTS voice
+- **Translation is accurate**, but voice accent is not native
+- **Example**: French user receives correct French text spoken with English accent
+
+**Real User Experience:**
+
+```
+French user says: "Bonjour comment allez-vous?"
+German user receives:
+  ✅ Perfect translation: "Hallo, wie geht es dir?"
+  ❌ English voice accent: Sounds like English person reading German
+```
+
+This is a **Deepgram TTS limitation**. For native voice accents in 40+ languages, consider Google Cloud TTS or Microsoft Azure (see Provider Comparison section below).
 
 **Documentation Reference:**
 
@@ -196,11 +243,33 @@ node video-chat-server.js
 2. **Set Language Preferences**: Each user selects their preferred language (English/Spanish/etc.)
 3. **Click "Start Deepgram"**: Begins individual Audio Connector for that user
 4. **Speak Naturally**: System automatically:
-   - Transcribes speech using Deepgram STT (nova-2 model)
-   - Translates to other users' preferred languages (**only if different**)
-   - Generates TTS audio using compatible voice models
-   - Delivers translated audio via Audio Connectors
-   - Displays real-time transcriptions with speaker identification
+   - **STT**: Transcribes speech using user's specific language (e.g., French → `fr`)
+   - **Translation**: Translates using Google Translate with source language hints
+   - **TTS**: Generates audio using available voice (English/Spanish only)
+   - **Audio Delivery**: Plays translated speech via Audio Connectors
+   - **UI Display**: Shows real-time transcriptions with speaker identification
+
+### **🎯 Language Pipeline Examples**
+
+**English ↔ Spanish (Full Native Support):**
+
+```
+User A (English) → "Hello" → Deepgram STT (en-US) → "Hello"
+→ Google Translate (en→es) → "Hola" → Deepgram TTS (Spanish voice) → User B hears native Spanish
+```
+
+**French ↔ German (STT Optimized, English Voice TTS):**
+
+```
+User A (French) → "Bonjour" → Deepgram STT (fr) → "Bonjour"
+→ Google Translate (fr→de) → "Hallo" → Deepgram TTS (English voice) → User B hears English accent saying "Hallo"
+```
+
+**What Users Experience:**
+
+- ✅ **Perfect transcription** in their native language
+- ✅ **Accurate translation** using Google Translate
+- ⚠️ **Limited voice accents** (English/Spanish only)
 
 ### **⚠️ Important: Translation Logic**
 
