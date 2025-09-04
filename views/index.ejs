@@ -136,6 +136,13 @@
 
   // Global state tracking for Deepgram translation pipeline
   var deepgram_in_use = false;
+  window.deepgram_in_use = deepgram_in_use; // Make globally accessible
+
+  function setDeepgramInUse(value) {
+    deepgram_in_use = value;
+    window.deepgram_in_use = value; // Keep window property in sync
+    console.log(`Deepgram in use set to: ${value}`);
+  }
 
   // User ID will be set to the publisher's connectionId once video session is established
   var userId = null;
@@ -262,7 +269,7 @@
    * ON: Starts Per-User Audio Connector → STT → Translation → TTS pipeline
    * OFF: Stops user's Audio Connector and cleans up resources
    */
-  function toggleDeepgram() {
+  async function toggleDeepgram() {
     var button = $("#deepgram_button");
 
     // Check if we have a userId (connectionId) before proceeding
@@ -277,7 +284,38 @@
       button.text("Starting Deepgram");
       button.css("background-color", "Orange");
 
-      // Call per-user endpoint to start Audio Connector
+      // CRITICAL: Set translation state BEFORE starting Audio Connector
+      // This prevents other users from subscribing to our Audio Connector
+      setDeepgramInUse(true);
+      console.log(
+        "🔒 Pre-emptively set deepgram_in_use=true to prevent feedback loops"
+      );
+
+      // CRITICAL FIX: Unsubscribe from any existing Audio Connector subscriptions
+      // When user starts their own translation, they should not receive others' translations
+      if (window.currentSession && window.currentSession.getSubscribers) {
+        const existingSubscribers = window.currentSession.getSubscribers();
+        existingSubscribers.forEach((subscriber) => {
+          const stream = subscriber.stream;
+          // Check if this is an Audio Connector stream (audio-only, no video)
+          if (stream && stream.hasAudio && !stream.hasVideo) {
+            console.log(
+              "🔄 CLEANUP: Unsubscribing from existing Audio Connector before starting own translation",
+              {
+                streamId: stream.streamId,
+                streamName: stream.name,
+                connectionId: stream.connection?.connectionId,
+              }
+            );
+            window.currentSession.unsubscribe(subscriber);
+          }
+        });
+      }
+
+      // Small delay to ensure global state propagates before Audio Connector creation
+      // This helps prevent race conditions where other users see the streamCreated
+      // event before our deepgram_in_use state is properly set
+      await new Promise((resolve) => setTimeout(resolve, 50)); // Call per-user endpoint to start Audio Connector
       // NOW: Uses connectionId as userId for individual user processing
       // This triggers: Per-user Audio Connector creation → WebSocket connection → STT setup
       $.ajax({
@@ -286,7 +324,7 @@
       })
         .done(function (msg) {
           // Translation pipeline successfully started
-          deepgram_in_use = true;
+          // setDeepgramInUse(true); // Already set above to prevent timing issues
           console.log(
             "Per-user Audio Connector started for connectionId:",
             userId,
@@ -304,8 +342,9 @@
           );
         })
         .fail(function (xhr, status, error) {
-          // Audio Connector startup failed
+          // Audio Connector startup failed - reset state
           console.error("Per-user Audio Connector startup failed:", error);
+          setDeepgramInUse(false); // Reset on failure
           alert("Deepgram startup failed: " + error);
           button.text("Start Deepgram");
           button.css("background-color", "darkslategrey");
@@ -325,7 +364,19 @@
       // Update UI and state immediately
       button.text("Start Deepgram");
       button.css("background-color", "darkslategrey");
-      deepgram_in_use = false;
+      setDeepgramInUse(false);
+
+      // OPTIONAL: Re-subscribe to other users' Audio Connectors when stopping own translation
+      // This allows user to receive others' translations again
+      setTimeout(() => {
+        if (window.currentSession) {
+          console.log(
+            "🔄 RESUBSCRIBE: Checking for other users' Audio Connectors to subscribe to..."
+          );
+          // Note: New Audio Connector streams will be automatically handled by streamCreated event
+          // This is mainly for existing streams that we might have missed
+        }
+      }, 100);
 
       // Send shutdown request to server
       if (ws && ws.readyState === WebSocket.OPEN) {

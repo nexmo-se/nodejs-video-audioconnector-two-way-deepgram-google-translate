@@ -76,60 +76,35 @@ window.startSession = (sessionId, token, apiKey) => {
           creationTime: stream.creationTime,
         });
 
-        // ULTRA-CONSERVATIVE GLOBAL CHECK: If user has active translation,
-        // be extremely cautious about subscribing to audio-only streams
-        if (window.deepgram_in_use && stream.hasAudio && !stream.hasVideo) {
-          console.log(
-            "⚠️ GLOBAL SAFETY CHECK: User has active translation, examining audio-only stream carefully"
-          );
-        }
-
         // CORRECTED APPROACH: Use connectionData from token to identify Audio Connector streams
         // The server sets connectionData when generating the Audio Connector token
         let streamMeta = {};
-        let tokenDataAvailable = false;
         try {
-          if (stream.connection.data) {
-            streamMeta = JSON.parse(stream.connection.data);
-            tokenDataAvailable = true;
-            console.log("✅ Token data successfully parsed:", streamMeta);
-          } else {
-            console.warn("⚠️ No connection data available for stream");
-          }
+          streamMeta = JSON.parse(stream.connection.data || "{}");
         } catch (e) {
-          console.warn("❌ Could not parse stream connection data:", e);
+          console.warn("Could not parse stream connection data:", e);
           streamMeta = {};
         }
 
         const isAudioConnectorByToken = streamMeta.type === "audio_connector";
 
-        // Enhanced fallback detection for Audio Connector streams
+        // Fallback detection for Audio Connector streams without proper token data
         // Audio Connector streams have: hasAudio=true, hasVideo=false, empty/missing name
         const isAudioConnectorByProps =
           stream.hasAudio === true &&
           stream.hasVideo === false &&
-          (!stream.name || stream.name.trim() === "") &&
-          stream.videoType === undefined; // More specific check
+          (!stream.name || stream.name.trim() === "");
 
-        // Prefer token-based detection, fallback to properties only if token data unavailable
-        const isAudioConnector = tokenDataAvailable
-          ? isAudioConnectorByToken
-          : isAudioConnectorByProps;
-
+        const isAudioConnector =
+          isAudioConnectorByToken || isAudioConnectorByProps;
         const audioConnectorOwner = streamMeta.userId;
-        const currentUserId = session.connection.connectionId;
-
-        // Safe ownership check - only true if we have valid token data AND ownership matches
-        const isOwnAudioConnector =
-          tokenDataAvailable &&
-          audioConnectorOwner &&
-          audioConnectorOwner === currentUserId;
+        const currentUserId = session.connection.connectionId; // Our own connection ID
+        const isOwnAudioConnector = audioConnectorOwner === currentUserId;
 
         console.log("🔍 Audio Connector detection and subscription check:", {
           streamConnectionId: stream.connection.connectionId,
           sessionConnectionId: session.connection.connectionId,
           streamConnectionData: stream.connection.data,
-          tokenDataAvailable: tokenDataAvailable,
           parsedMeta: streamMeta,
           isAudioConnectorByToken: isAudioConnectorByToken,
           isAudioConnectorByProps: isAudioConnectorByProps,
@@ -141,8 +116,6 @@ window.startSession = (sessionId, token, apiKey) => {
           decision: (() => {
             if (!isAudioConnector) {
               return "Not an Audio Connector - will handle as regular participant stream";
-            } else if (!tokenDataAvailable && isAudioConnectorByProps) {
-              return "Audio Connector detected by properties (no token data) - will subscribe as fallback";
             } else if (isOwnAudioConnector) {
               return "OWN Audio Connector - SUBSCRIBE for translated audio";
             } else if (window.deepgram_in_use) {
@@ -155,64 +128,23 @@ window.startSession = (sessionId, token, apiKey) => {
 
         // Handle Audio Connector streams
         if (isAudioConnector) {
-          // CRITICAL FIX: If we can't determine ownership reliably, be ultra-conservative
-          if (!tokenDataAvailable || !audioConnectorOwner) {
+          // Skip subscription to OTHER users' Audio Connectors if we have our own translation
+          if (!isOwnAudioConnector && window.deepgram_in_use) {
             console.log(
-              "❌ ULTRA-CONSERVATIVE: Skipping Audio Connector - no reliable ownership data available"
+              "🚫 FEEDBACK PREVENTION: Skipping OTHER user's Audio Connector - we have our own translation active"
             );
-            return; // Skip ALL Audio Connectors when ownership is uncertain
-          }
-
-          // ADDITIONAL SAFETY CHECK: If user has active translation, skip ALL other Audio Connectors
-          if (window.deepgram_in_use && !isOwnAudioConnector) {
-            console.log(
-              "🚫 FEEDBACK PREVENTION: Skipping OTHER user's Audio Connector - we have our own translation active",
-              {
-                ourUserId: currentUserId,
-                streamOwner: audioConnectorOwner,
-                isOwnStream: isOwnAudioConnector,
-                deepgramInUse: window.deepgram_in_use,
-              }
-            );
-            return;
-          }
-
-          // FINAL SAFETY: Even for own Audio Connector, double-check the ownership
-          if (isOwnAudioConnector) {
-            const doubleCheck = audioConnectorOwner === currentUserId;
-            if (!doubleCheck) {
-              console.log(
-                "❌ OWNERSHIP MISMATCH: Expected own Audio Connector but IDs don't match exactly",
-                {
-                  audioConnectorOwner,
-                  currentUserId,
-                  match: doubleCheck,
-                }
-              );
-              return;
-            }
+            return; // Don't subscribe to other users' Audio Connectors when we have our own translation
           }
 
           const subscriptionType = isOwnAudioConnector
             ? "OWN Audio Connector (for receiving our translated audio)"
-            : tokenDataAvailable
-            ? "OTHER user's Audio Connector (for receiving their translations)"
-            : "Audio Connector (ownership unknown - fallback mode)";
+            : "OTHER user's Audio Connector (for receiving their translations)";
 
-          console.log(`✅ SAFE TO SUBSCRIBE: ${subscriptionType}`, {
-            isOwnAudioConnector,
-            tokenDataAvailable,
-            audioConnectorOwner,
-            currentUserId,
-            deepgramInUse: window.deepgram_in_use,
-            streamId: stream.streamId,
-            streamName: stream.name,
-          });
+          console.log(`✅ Subscribing to ${subscriptionType}`);
 
           // Create a completely hidden container for audio-only subscription
           const hiddenContainer = document.createElement("div");
           hiddenContainer.className = "audio-connector-hidden";
-          hiddenContainer.id = `audio-connector-${stream.streamId}`; // Add ID for easier cleanup
           document.body.appendChild(hiddenContainer);
 
           // Subscribe to Audio Connector for translated audio playback

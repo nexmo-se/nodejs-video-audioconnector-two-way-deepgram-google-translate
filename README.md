@@ -1185,6 +1185,9 @@ This optimization ensures that natural speech patterns are preserved while maint
   - Single user (need 2+ users for translation)
   - Users with same language preference (no translation needed)
   - Same device tabs (creates feedback loops - use separate devices)
+- **"Translation failed, using original text"**: Check server logs for `log.debug is not a function` error
+  - **Fix**: Replace any `log.debug()` calls with `log.info()` in `video-chat-server.js`
+  - **Cause**: The logging utility doesn't have a `debug` method, only `info`, `success`, `warning`, `error`, `pipeline`, `audio`
 - Verify Deepgram API key is valid and has sufficient credits
 - Check that audio sample rate is 16kHz
 - Ensure internet connectivity for Google Translate API
@@ -1918,3 +1921,108 @@ _Note: Costs are approximate and vary by region, volume discounts, and specific 
 - **User Engagement:** +25-35% longer session duration
 - **Market Competitiveness:** Alignment with enterprise-grade solutions
 - **Global Scalability:** Ready for international market expansion
+
+---
+
+## 🔧 Troubleshooting
+
+### **Audio Feedback Loop Issues**
+
+**Problem:** User speaks French, translation is generated correctly, but then user hears mixed-language transcripts like "Marcy you est, the autos" and duplicate translations.
+
+**Root Cause:** Audio feedback loop where:
+
+1. User A speaks → Translation generated for User B
+2. TTS audio sent to User B's Audio Connector
+3. TTS audio also sent back to User A's Audio Connector (causing feedback)
+4. User A's microphone picks up the TTS audio → Creates mixed-language STT
+
+**Symptoms:**
+
+- Duplicate translations appearing
+- Mixed-language transcripts (e.g., Spanish user getting "Marcy you est")
+- Audio cutting off mid-sentence
+- Strange concatenated words from different languages
+
+**Fixes Applied:**
+
+1. **Server-side Fix (video-chat-server.js):**
+
+```javascript
+// CRITICAL: Only send TTS to target user's Audio Connector, NOT back to speaker
+if (
+  user.websocket.readyState === user.websocket.OPEN &&
+  user.userId !== speakerUserId
+) {
+  await playback_to_websocket(user.websocket, stream);
+  // TTS only sent to OTHER users, prevents feedback
+}
+
+// Enhanced token generation with user identification
+token = videoClient.generateClientToken(sessionId, {
+  data: JSON.stringify({
+    userId: userId,
+    type: "audio_connector",
+    role: "translator",
+  }),
+});
+```
+
+2. **Client-side Fix (views/js/client.js):**
+
+```javascript
+// Extract user identification from stream connection data
+const connectionData = JSON.parse(stream.connection.data);
+const streamUserId = connectionData.userId;
+const currentUserId = window.currentSession?.connection?.connectionId;
+const isOwnAudioConnector = streamUserId === currentUserId;
+
+if (isOwnAudioConnector) {
+  console.log(
+    "Skipping subscription to own Audio Connector - prevents feedback loop"
+  );
+  return; // Don't subscribe to own Audio Connector
+}
+```
+
+**Testing After Fixes:**
+
+1. Restart server: `node update-env.js`
+2. **Check log file:** Server now saves all logs to `server-logs-YYYY-MM-DD.log`
+3. Test French ↔ Spanish translation with two users
+4. Check browser console: Should see "Skipping subscription to own Audio Connector - prevents feedback loop"
+5. Verify: User 1 speaks French → User 2 hears Spanish translation → No feedback loops
+6. Check server logs: Should see "Audio feedback prevention: NOT sent back to speaker"
+
+**Log File Analysis:**
+
+- All server activity is now saved to daily log files
+- Use `tail -f server-logs-*.log` to monitor live
+- Search logs: `grep "feedback" server-logs-*.log`
+- Filter pipeline steps: `grep "PIPELINE" server-logs-*.log`
+
+**Prevention Tips:**
+
+- Each user's token now includes their userId for stream identification
+- Client-side logic automatically prevents subscribing to own Audio Connector streams
+- Server-side logic prevents sending TTS back to original speaker
+- Monitor both browser console and server logs for proper feedback prevention
+- Use log files to analyze translation patterns and debug issues
+
+### **Translation Not Working - log.debug Error**
+
+**Problem:** All translations fail with error: `log.debug is not a function`
+
+**Root Cause:** Custom logging utility only supports specific methods: `info`, `success`, `warning`, `error`, `pipeline`, `audio` (but NOT `debug`)
+
+**Fix:** Replace any `log.debug()` calls with `log.info()`:
+
+```javascript
+// Before (causes crash):
+log.debug("Translation result", result);
+
+// After (works correctly):
+log.info("Translation result", result);
+```
+
+**Verification:** Check that translations complete successfully and TTS audio is generated.

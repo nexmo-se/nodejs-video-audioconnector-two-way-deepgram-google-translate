@@ -147,6 +147,7 @@ var cors = require("cors"); // Cross-Origin Resource Sharing
 var path = require("path"); // File path utilities
 var cookieParser = require("cookie-parser"); // Cookie parsing middleware
 var logger = require("morgan"); // HTTP request logging
+const fs = require("fs"); // File system operations for logging
 var app = express();
 
 // Vonage Video API imports for video session management
@@ -185,50 +186,62 @@ if (!process.env.DEEPGRAM_API_KEY || process.env.DEEPGRAM_API_KEY.length < 10) {
   process.exit(1);
 }
 
-// Enhanced logging utility
+// Enhanced logging utility with file output
+const logFileName = `server-logs-${new Date().toISOString().split("T")[0]}.log`;
+const logToFile = (logMessage) => {
+  try {
+    fs.appendFileSync(logFileName, logMessage + "\n");
+  } catch (error) {
+    console.error("Failed to write to log file:", error.message);
+  }
+};
+
 const log = {
   info: (message, data = null) => {
     const timestamp = new Date().toISOString();
-    console.log(
-      `[${timestamp}] ℹ️  ${message}`,
-      data ? JSON.stringify(data, null, 2) : ""
-    );
+    const dataStr = data ? JSON.stringify(data, null, 2) : "";
+    const logMessage = `[${timestamp}] ℹ️  ${message} ${dataStr}`;
+    console.log(logMessage);
+    logToFile(logMessage);
   },
   success: (message, data = null) => {
     const timestamp = new Date().toISOString();
-    console.log(
-      `[${timestamp}] ✅ ${message}`,
-      data ? JSON.stringify(data, null, 2) : ""
-    );
+    const dataStr = data ? JSON.stringify(data, null, 2) : "";
+    const logMessage = `[${timestamp}] ✅ ${message} ${dataStr}`;
+    console.log(logMessage);
+    logToFile(logMessage);
   },
   warning: (message, data = null) => {
     const timestamp = new Date().toISOString();
-    console.log(
-      `[${timestamp}] ⚠️  ${message}`,
-      data ? JSON.stringify(data, null, 2) : ""
-    );
+    const dataStr = data ? JSON.stringify(data, null, 2) : "";
+    const logMessage = `[${timestamp}] ⚠️  ${message} ${dataStr}`;
+    console.log(logMessage);
+    logToFile(logMessage);
   },
   error: (message, error = null) => {
     const timestamp = new Date().toISOString();
-    console.log(
-      `[${timestamp}] ❌ ${message}`,
-      error ? error.message || error : ""
-    );
+    const errorStr = error ? error.message || error : "";
+    const logMessage = `[${timestamp}] ❌ ${message} ${errorStr}`;
+    console.log(logMessage);
+    logToFile(logMessage);
   },
   pipeline: (step, message, data = null) => {
     const timestamp = new Date().toISOString();
-    console.log(
-      `[${timestamp}] 🔄 PIPELINE ${step}: ${message}`,
-      data ? JSON.stringify(data, null, 2) : ""
-    );
+    const dataStr = data ? JSON.stringify(data, null, 2) : "";
+    const logMessage = `[${timestamp}] 🔄 PIPELINE ${step}: ${message} ${dataStr}`;
+    console.log(logMessage);
+    logToFile(logMessage);
   },
   audio: (message, bufferSize = null) => {
     const timestamp = new Date().toISOString();
     const size = bufferSize ? ` (${(bufferSize / 1024).toFixed(1)}KB)` : "";
-    console.log(`[${timestamp}] 🔊 AUDIO: ${message}${size}`);
+    const logMessage = `[${timestamp}] 🔊 AUDIO: ${message}${size}`;
+    console.log(logMessage);
+    logToFile(logMessage);
   },
 };
 
+log.info("🚀 Server starting up - logs saved to: " + logFileName);
 log.info("Deepgram SDK initialized", { version: deepgram.version });
 
 // Application configuration from environment variables
@@ -378,7 +391,25 @@ app.get("/:sessionId/audioconnect/:userId", async function (req, res) {
       });
     }
 
-    token = videoClient.generateClientToken(sessionId);
+    // Generate token with user identification for Audio Connector stream metadata
+    // This allows client-side stream identification to prevent audio feedback loops
+    const tokenData = {
+      userId: userId,
+      type: "audio_connector",
+      role: "translator",
+      timestamp: Date.now(), // Add timestamp for debugging
+    };
+
+    log.info("Generating Audio Connector token with data:", tokenData);
+
+    token = videoClient.generateClientToken(sessionId, {
+      data: JSON.stringify(tokenData),
+    });
+
+    // Validate token was created successfully
+    if (!token) {
+      throw new Error("Failed to generate Audio Connector token");
+    }
 
     // Connect Audio Connector for this specific user
     // Each user gets their own WebSocket connection
@@ -982,7 +1013,7 @@ wsServer.on("connection", (websocket, request) => {
                   // If we know the speaker's language, use it to improve translation accuracy
                   if (speakerLanguage && speakerLanguage !== user.language) {
                     translateOptions.from = speakerLanguage;
-                    log.debug(
+                    log.info(
                       "Using speaker's language preference for translation",
                       {
                         speakerLanguage,
@@ -1122,15 +1153,29 @@ wsServer.on("connection", (websocket, request) => {
                     textLength: translationResult.text.length + " chars",
                   });
 
-                  // Send TTS audio to this specific user's Audio Connector
-                  if (user.websocket.readyState === user.websocket.OPEN) {
+                  // CRITICAL: Only send TTS to target user's Audio Connector, NOT back to speaker
+                  // This prevents audio feedback loop where speaker hears their own translation
+                  if (
+                    user.websocket.readyState === user.websocket.OPEN &&
+                    user.userId !== speakerUserId
+                  ) {
                     await playback_to_websocket(user.websocket, stream);
 
                     log.pipeline("5", "TTS audio sent to user", {
                       speakerUserId: speakerUserId,
                       targetUserId: user.userId,
                       method: "Audio Connector",
+                      note: "Audio feedback prevention: NOT sent back to speaker",
                     });
+                  } else if (user.userId === speakerUserId) {
+                    log.info(
+                      "Skipping TTS playback to speaker - prevents audio feedback",
+                      {
+                        speakerUserId: speakerUserId,
+                        targetUserId: user.userId,
+                        note: "Speaker should not hear their own translation via Audio Connector",
+                      }
+                    );
                   } else {
                     log.warning("User WebSocket not ready for TTS playback", {
                       targetUserId: user.userId,
