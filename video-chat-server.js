@@ -117,18 +117,25 @@ function getOtherUsersInSession(sessionId, speakerUserId) {
 /**
  * Real-Time Video Chat with Multi-Language Translation
  *
- * This application provides a video chat platform with real-time speech translation.
+ * This application provides a video chat platform with real-time speech translation
+ * featuring language-aware STT configuration and intelligent translation.
  *
- * ARCHITECTURE OVERVIEW:
+ * ENHANCED ARCHITECTURE OVERVIEW:
  * 1. Vonage Video API - Handles video/audio streaming between participants
- * 2. Audio Connector - Captures audio from video session
- * 3. Deepgram STT - Converts speech to text with speaker diarization
- * 4. Google Translate - Translates text between languages
- * 5. Deepgram TTS - Converts translated text back to speech
- * 6. WebSocket - Streams translated audio back to participants
+ * 2. Per-User Audio Connectors - Captures audio from individual users
+ * 3. Language-Aware Deepgram STT - User-specific language configuration for optimal accuracy
+ * 4. Smart Google Translate - Source language hints and improved translation accuracy
+ * 5. Deepgram TTS - Converts translated text back to speech with language-specific voices
+ * 6. WebSocket - Streams translated audio back to participants with multi-user support
  *
- * PIPELINE FLOW:
- * Audio Stream → STT → Translation → TTS → Audio Playback
+ * ENHANCED PIPELINE FLOW:
+ * User Audio → Language-Aware STT → Smart Translation → Language-Specific TTS → Target User
+ *
+ * KEY IMPROVEMENTS:
+ * - Dynamic STT language configuration based on user preferences
+ * - Source language hints for better translation accuracy
+ * - Fallback strategies for unknown languages
+ * - Enhanced logging with language-specific debugging
  */
 
 // Load environment variables from .env file
@@ -317,14 +324,21 @@ app.get("/:sessionId/join", function (req, res) {
 });
 
 /**
- * MULTI-USER: Per-user Audio Connector initialization endpoint
+ * ENHANCED MULTI-USER: Per-user Audio Connector initialization endpoint
  * GET /:sessionId/audioconnect/:userId
  *
  * Each user gets their own Audio Connector connection for:
- * 1. Individual language preference handling
- * 2. Separate STT pipelines per user
- * 3. Targeted TTS delivery to other users
- * 4. No audio feedback loops
+ * 1. Individual language preference handling with language-aware STT
+ * 2. Separate Deepgram STT pipelines optimized per user's language
+ * 3. Targeted TTS delivery to other users with appropriate voice models
+ * 4. No audio feedback loops between users
+ * 5. Dynamic language reconfiguration when users change preferences
+ *
+ * LANGUAGE-AWARE IMPROVEMENTS:
+ * - STT configured with user's preferred language (e.g., 'fr', 'es', 'en-US')
+ * - Fallback to multi-language detection for users without language preference
+ * - Enhanced translation accuracy with source language hints
+ * - Automatic reconnection support for language preference changes
  */
 app.get("/:sessionId/audioconnect/:userId", async function (req, res) {
   try {
@@ -612,11 +626,11 @@ wsServer.on("connection", (websocket, request) => {
    *    - Triggers: STT→Translation→TTS pipeline processing
    *
    * CUSTOM CLIENT PROTOCOL (from index.ejs):
-   * 3. "set_id" command - Client identification message
-   *    - Source: index.ejs line 79 (sent on page load)
-   *    - Purpose: Register web client to receive transcription updates
-   *    - Format: {"command":"set_id","id":"client_<%=sessionId%>"}
-   *    - Triggers: Client registration for transcript broadcasting
+   * 3. "webSocketID" command - WebSocket identification message
+   *    - Source: index.ejs (sent when WebSocket opens)
+   *    - Purpose: Set WebSocket ID to distinguish browser clients from Audio Connector connections
+   *    - Format: {"command":"webSocketID","id":"client_<%=sessionId%>"}
+   *    - Triggers: WebSocket connection registration for transcript broadcasting
    *
    * 4. "close_audio_connector" command - Cleanup request
    *    - Source: index.ejs line 126 (sent on page unload/beforeunload)
@@ -652,37 +666,76 @@ wsServer.on("connection", (websocket, request) => {
       /**
        * PIPELINE STEP 1: Configure Deepgram STT for Individual User Processing
        *
-       * Using simplified configuration for better reliability:
-       * - Basic settings to ensure connection stability
-       * - Removed advanced features that might cause connection issues
+       * Using user language preference to optimize transcription accuracy:
+       * - Use specific language if user has set preference
+       * - Fall back to multi-language detection for unknown users
+       * - Maintain basic settings for connection stability
        */
+
+      // Get user's language preference for better STT accuracy
+      const userInfo = sessionUsers.get(sessionId)?.get(userId);
+      const userLanguage = userInfo?.language;
+
+      // Map user language preferences to Deepgram language codes
+      const deepgramLanguageMap = {
+        fr: "fr", // French
+        es: "es", // Spanish
+        en: "en-US", // English
+        de: "de", // German
+        it: "it", // Italian
+        pt: "pt-BR", // Portuguese
+        ja: "ja", // Japanese
+        ko: "ko", // Korean
+        zh: "zh-CN", // Chinese
+        ru: "ru", // Russian
+        ar: "ar", // Arabic
+        hi: "hi", // Hindi
+        th: "th", // Thai
+        tr: "tr", // Turkish
+      };
+
+      // Choose language setting based on user preference
+      const deepgramLanguage =
+        userLanguage && deepgramLanguageMap[userLanguage]
+          ? deepgramLanguageMap[userLanguage]
+          : "multi"; // Fall back to multi-language detection
+
       try {
         dgConnection = deepgram.listen.live({
           // === BASIC REQUIRED SETTINGS ===
-          language: "multi", // Multi-language detection for Spanish→English translation
-          model: "nova-2", // Use stable Nova 2 model
+          language: deepgramLanguage, // Use user's preferred language or multi-language detection
+          model: "nova-2", // Use stable Nova 2 model for best accuracy
           encoding: "linear16", // PCM audio format
           sample_rate: 16000, // 16kHz sample rate
           channels: 1, // Mono audio
 
-          // === PROCESSING SETTINGS (SIMPLIFIED) ===
+          // === PROCESSING SETTINGS (OPTIMIZED) ===
           interim_results: false, // Only final results to avoid splitting
-          punctuate: true, // Add punctuation
-          diarize: false, // No diarization
+          punctuate: true, // Add punctuation for better readability
+          diarize: false, // No diarization needed for single user per connection
+          smart_format: true, // Enable smart formatting for better output
         });
 
         // Store the Deepgram connection with this WebSocket for cleanup
         websocket.dgConnection = dgConnection;
 
-        log.pipeline("1", "Deepgram STT configured with basic settings", {
-          language: "Multi-language (for Spanish→English translation)",
-          model: "nova-2",
-          sampleRate: "16kHz",
-          encoding: "linear16",
-          channels: 1,
-          interimResults: "disabled (final only)",
-          note: "Using basic settings for stability",
-        });
+        log.pipeline(
+          "1",
+          "Deepgram STT configured with language-optimized settings",
+          {
+            userLanguage: userLanguage || "not set",
+            deepgramLanguage: deepgramLanguage,
+            model: "nova-2",
+            sampleRate: "16kHz",
+            encoding: "linear16",
+            channels: 1,
+            interimResults: "disabled (final only)",
+            smartFormat: "enabled",
+            note: userLanguage
+              ? "Using user's preferred language for better accuracy"
+              : "Using multi-language detection",
+          }
+        );
       } catch (configError) {
         log.error("Failed to configure Deepgram connection", {
           error: configError.message,
@@ -757,9 +810,19 @@ wsServer.on("connection", (websocket, request) => {
 
           // Only log final transcripts to reduce noise
           if (transcript && transcript.trim() && data.is_final) {
+            // Get user info for enhanced logging
+            const userInfo = sessionUsers.get(sessionId)?.get(userId);
+            const userLanguage = userInfo?.language;
+
             log.info("📝 Final transcript", {
               transcript: transcript,
               confidence: data.channel.alternatives[0].confidence,
+              userId: userId,
+              userLanguage: userLanguage || "not set",
+              deepgramLanguage:
+                userLanguage && userLanguage !== "multi"
+                  ? userLanguage
+                  : "multi-language",
             });
           }
 
@@ -837,6 +900,11 @@ wsServer.on("connection", (websocket, request) => {
 
             // ===== SEND ORIGINAL TRANSCRIPTION TO SPEAKER =====
             // Send the speaker's own transcription to their web client first
+
+            // Get speaker's language preference for display
+            const speakerInfo = sessionUsers.get(sessionId)?.get(speakerUserId);
+            const speakerLanguage = speakerInfo?.language || "auto";
+
             const speakerTranscriptionUpdate = {
               type: "transcription",
               speakerUserId: speakerUserId,
@@ -847,7 +915,7 @@ wsServer.on("connection", (websocket, request) => {
               }),
               originalText: completeTranscript,
               translatedText: completeTranscript, // Same as original for speaker
-              sourceLanguage: "auto",
+              sourceLanguage: speakerLanguage,
               targetLanguage: "original",
             };
 
@@ -899,39 +967,61 @@ wsServer.on("connection", (websocket, request) => {
             // Process translation for each user in the session
             for (const user of otherUsers) {
               try {
+                // Get speaker's language preference to improve translation accuracy
+                const speakerInfo = sessionUsers
+                  .get(sessionId)
+                  ?.get(speakerUserId);
+                const speakerLanguage = speakerInfo?.language;
+
                 // Translate to user's preferred language
                 let translationResult;
                 try {
-                  translationResult = await translate(completeTranscript, {
+                  // Use speaker's language preference as source hint if available, otherwise auto-detect
+                  const translateOptions = {
                     to: user.language,
-                  });
+                  };
+
+                  // If we know the speaker's language, use it to improve translation accuracy
+                  if (speakerLanguage && speakerLanguage !== user.language) {
+                    translateOptions.from = speakerLanguage;
+                    log.debug(
+                      "Using speaker's language preference for translation",
+                      {
+                        speakerLanguage,
+                        targetLanguage: user.language,
+                        text: completeTranscript.substring(0, 50) + "...",
+                      }
+                    );
+                  }
+
+                  translationResult = await translate(
+                    completeTranscript,
+                    translateOptions
+                  );
                 } catch (translateError) {
                   log.error("Translation failed, using original text", {
                     error: translateError.message,
                     originalText: completeTranscript,
+                    speakerLanguage: speakerLanguage || "unknown",
                     targetLanguage: user.language,
                     targetUserId: user.userId,
                   });
                   translationResult = {
                     text: completeTranscript,
-                    from: { language: { iso: "unknown" } },
+                    from: { language: { iso: speakerLanguage || "unknown" } },
                   };
                 }
 
                 log.pipeline("3", "Translation completed", {
                   speakerUserId: speakerUserId,
                   targetUserId: user.userId,
-                  fromLang: translationResult.from?.language?.iso || "auto",
+                  fromLang:
+                    translationResult.from?.language?.iso ||
+                    speakerLanguage ||
+                    "auto",
                   toLang: user.language,
                   textLength: translationResult.text.length + " chars",
                 });
-
-                // Get speaker's language preference for comparison
-                const speakerLanguage =
-                  sessionUsers.has(sessionId) &&
-                  sessionUsers.get(sessionId).has(speakerUserId)
-                    ? sessionUsers.get(sessionId).get(speakerUserId).language
-                    : null;
 
                 // Generate TTS if speaker's language preference is different from target user's language preference
                 if (speakerLanguage !== user.language) {
@@ -1115,16 +1205,21 @@ wsServer.on("connection", (websocket, request) => {
       });
     }
 
-    // ===== CLIENT IDENTIFICATION (from index.ejs line 79) =====
-    else if (data.toString().includes("set_id")) {
+    // ===== WEBSOCKET ID REGISTRATION (from index.ejs) =====
+    else if (data.toString().includes("webSocketID")) {
       /**
-       * CLIENT REGISTRATION MESSAGE
-       * Sent by web clients to identify themselves for receiving transcription updates.
+       * WEBSOCKET IDENTIFICATION MESSAGE
+       * Purpose: Set WebSocket ID to distinguish browser clients from Audio Connector connections
        *
-       * Source: index.ejs line 79 - executed on page load
-       * Code: websocket.send(JSON.stringify({command:"set_id", id:"client_<%=sessionId%>"}));
-       * Purpose: Allows server to broadcast transcriptions to specific web clients
-       * Trigger: Page load event in browser
+       * This allows the server to:
+       * - Identify this connection as a web browser client (not Audio Connector)
+       * - Associate the WebSocket with a specific video session and user
+       * - Send transcription broadcasts back to the correct browser
+       * - Track user language preferences for multi-user translation
+       *
+       * Source: index.ejs WebSocket connection setup
+       * Code: websocket.send(JSON.stringify({command:"webSocketID", id:"client_<%=sessionId%>"}));
+       * Trigger: Browser WebSocket connection establishment
        */
       const messageData = JSON.parse(data);
       const clientId = messageData["id"];
@@ -1168,6 +1263,44 @@ wsServer.on("connection", (websocket, request) => {
           language,
           connectionId: websocket.id,
         });
+
+        // Check if this user has an active Audio Connector connection that needs updating
+        const userInfo = sessionUsers.get(sessionId)?.get(userId);
+        if (
+          userInfo &&
+          userInfo.websocket &&
+          userInfo.websocket.isAudioConnector
+        ) {
+          // Send reconnection request to Audio Connector to update Deepgram language configuration
+          const reconnectMessage = {
+            type: "language_updated_reconnect_required",
+            newLanguage: language,
+            reason:
+              "Deepgram STT configuration needs to be updated with new language preference",
+            timestamp: new Date().toISOString(),
+          };
+
+          try {
+            userInfo.websocket.send(JSON.stringify(reconnectMessage));
+            log.info(
+              "Sent reconnection request to Audio Connector for language update",
+              {
+                userId,
+                newLanguage: language,
+                connectionId: userInfo.websocket.id,
+              }
+            );
+          } catch (error) {
+            log.warning(
+              "Failed to send reconnection request to Audio Connector",
+              {
+                error: error.message,
+                userId,
+                newLanguage: language,
+              }
+            );
+          }
+        }
 
         // Broadcast language change to other users in session
         const otherUsers = getOtherUsersInSession(sessionId, userId);

@@ -168,11 +168,11 @@
 
     ws = new WebSocket("<%=websocket_server_uri%>");
     ws.onopen = (event) => {
-      // ENHANCED CLIENT IDENTIFICATION MESSAGE - Now uses connectionId as userId
-      // Purpose: Register this web client to receive transcription updates from server
-      // Server processing: Handled in "set_id" section of WebSocket message handler
+      // WEB CLIENT WEBSOCKET IDENTIFICATION MESSAGE
+      // Purpose: Set WebSocket ID to distinguish this browser client from Audio Connector connections
+      // Server processing: Handled in "webSocketID" section of WebSocket message handler
       var msg = {
-        command: "set_id",
+        command: "webSocketID",
         id: "client_<%=sessionId%>",
         userId: userId, // Now using Vonage connectionId as user ID
         sessionId: "<%=sessionId%>",
