@@ -9,62 +9,8 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
   </head>
   <body>
-    <!-- SESSION MANAGEMENT PANEL: Links for joining and token generation -->
-    <div
-      class="title"
-      style="padding: 10px; background-color: white; height: 230px"
-    >
-      <!-- Shareable link for participants to join the video session -->
-      Share this link for people to join<br /><input
-        type="text"
-        style="margin: 10px; width: calc(100% - 500px)"
-        id="link"
-        value="Starting Session"
-        readonly
-      />
-      <button onclick="copyLink('link')">Copy Link</button><br /><br />
-
-      <!-- Link for generating additional tokens for this session -->
-      Use this link to create tokens<br /><input
-        type="text"
-        style="margin: 10px; width: calc(100% - 500px)"
-        id="token"
-        value="Starting Session"
-        readonly
-      />
-      <button onclick="copyLink('token')">Copy Link</button><br /><br />
-      <br /><br />
-
-      <!-- DEEPGRAM CONTROL: Start/Stop real-time translation pipeline -->
-      <span>
-        <button
-          id="deepgram_button"
-          style="color: white; padding: 5px; background-color: darkslategrey"
-          onclick="toggleDeepgram()"
-        >
-          Start Deepgram
-        </button>
-      </span>
-    </div>
-
-    <!-- VIDEO DISPLAY AREA: Containers for video streams -->
-    <div>
-      <!-- Remote participants' video streams -->
-      <div id="subscriber"></div>
-      <!-- Local user's video stream -->
-      <div id="publisher"></div>
-    </div>
-
-    <!-- ENHANCED USER & LANGUAGE MANAGEMENT -->
-    <div
-      id="user-info-container"
-      style="
-        margin-bottom: 1em;
-        background: #f0f0f0;
-        padding: 10px;
-        border-radius: 5px;
-      "
-    >
+    <!-- ENHANCED USER & LANGUAGE MANAGEMENT (moved to top) -->
+    <div id="user-info-container">
       <div>
         <strong>Your Connection ID:</strong>
         <span id="user-id-display">Loading...</span>
@@ -82,7 +28,22 @@
           <option value="ja">Japanese</option>
           <option value="it">Italian</option>
           <option value="nl">Dutch</option>
-          <!-- Add more supported languages as needed -->
+          <option value="zh">Chinese (Mandarin)</option>
+          <option value="da">Danish</option>
+          <option value="sv">Swedish</option>
+          <option value="no">Norwegian</option>
+          <option value="pl">Polish</option>
+          <option value="ko">Korean</option>
+          <option value="fi">Finnish</option>
+          <option value="cs">Czech</option>
+          <option value="bg">Bulgarian</option>
+          <option value="ca">Catalan</option>
+          <option value="et">Estonian</option>
+          <option value="uk">Ukrainian</option>
+          <option value="tr">Turkish</option>
+          <option value="id">Indonesian</option>
+          <option value="ta">Tamil</option>
+          <!-- Vietnamese not supported by Deepgram STT/TTS -->
         </select>
         <button id="set_language_btn" style="margin-left: 10px">
           Set Language
@@ -96,24 +57,60 @@
       </div>
     </div>
 
-    <!-- TRANSCRIPTION DISPLAY: Real-time translation results -->
+    <!-- SESSION MANAGEMENT PANEL: Links for joining and Deepgram control (moved below user info) -->
+    <div class="title">
+      <!-- Shareable link for participants to join the video session -->
+      Share this link for people to join<br /><input
+        type="text"
+        style="margin: 10px; width: calc(100% - 500px)"
+        id="link"
+        value="Starting Session"
+        readonly
+      />
+      <button onclick="copyLink('link')">Copy Link</button><br /><br />
+
+      <!-- DEEPGRAM CONTROL: Start/Stop real-time translation pipeline -->
+      <span>
+        <button
+          id="deepgram_button"
+          style="color: white; padding: 5px; background-color: darkslategrey"
+          onclick="toggleDeepgram()"
+        >
+          Start Deepgram
+        </button>
+      </span>
+    </div>
+
+    <!-- TRANSCRIPTION DISPLAY: Real-time translation results (moved below user info) -->
     <div
       id="transcription"
       style="
-        height: 60px;
-        overflow: scroll;
-        bottom: 0;
-        position: absolute;
+        height: 200px;
+        overflow-y: auto;
         width: 100%;
-        background: seashell;
-        padding: 10px;
-        border-width: medium;
-        border-color: black;
+        background: #f9f9f9;
+        padding: 15px;
+        border-radius: 5px;
+        border: 1px solid #ddd;
+        margin-bottom: 20px;
+        font-family: monospace;
+        font-size: 14px;
       "
     >
       <div id="deepgram">
-        <div>Transcription Log:<br /></div>
+        <div><strong>Transcription Log:</strong><br /></div>
       </div>
+    </div>
+
+    <!-- VIDEO DISPLAY AREA: Containers for video streams -->
+    <div>
+      <!-- Remote participants' video streams (smaller size) -->
+      <div
+        id="subscriber"
+        style="width: 320px; height: 240px; display: inline-block; margin: 10px"
+      ></div>
+      <!-- Local user's video stream -->
+      <div id="publisher"></div>
     </div>
 
     <!-- CLIENT-SIDE VIDEO SESSION MANAGEMENT -->

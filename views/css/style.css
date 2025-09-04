@@ -1,7 +1,68 @@
-body,
+/* Overall body padding for better spacing */
+body {
+  padding: 20px;
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background-color: gray;
+  height: 100%;
+}
+
 html {
   background-color: gray;
   height: 100%;
+}
+
+/* Main container styling with extra right padding */
+#user-info-container,
+.title {
+  background: #f0f0f0;
+  padding: 15px;
+  padding-right: 30px; /* Extra right padding to avoid publisher video */
+  border-radius: 5px;
+  max-width: calc(
+    100% - 380px
+  ); /* Increased from 350px to account for extra padding */
+  margin-bottom: 20px;
+}
+
+/* Transcription area styling */
+#transcription {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-radius: 5px !important;
+  overflow-y: auto;
+  margin-bottom: 20px;
+}
+
+/* Style for better readability in transcription */
+#deepgram div {
+  margin-bottom: 5px;
+  line-height: 1.4;
+}
+
+/* OpenTok widget containers for publisher and subscriber - clean styling without borders */
+#subscriber .OT_widget-container,
+#publisher .OT_widget-container {
+  width: 320px !important;
+  height: 240px !important;
+  border-radius: 8px !important;
+  margin: 5px !important;
+  overflow: hidden !important;
+}
+
+/* Video elements and inner containers */
+#subscriber .OT_subscriber,
+#publisher .OT_publisher,
+#subscriber video,
+#publisher video {
+  width: 320px !important;
+  height: 240px !important;
+  border-radius: 8px !important;
+}
+
+/* Video area spacing */
+#subscriber,
+#publisher {
+  margin: 10px;
 }
 
 #videos {
@@ -30,8 +91,6 @@ html {
   top: 10px;
   right: 10px;
   z-index: 100;
-  border: 3px solid white;
-  border-radius: 3px;
 }
 
 .OT_subscriber {

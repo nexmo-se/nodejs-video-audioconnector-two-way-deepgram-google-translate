@@ -936,20 +936,51 @@ wsServer.on("connection", (websocket, request) => {
                 // Generate TTS if speaker's language preference is different from target user's language preference
                 if (speakerLanguage !== user.language) {
                   // Select appropriate voice model based on target language
+                  //
+                  // DEEPGRAM TTS VOICE REFERENCE:
+                  // Official Documentation: https://developers.deepgram.com/docs/tts-models
+                  // Voice Models & Languages: https://developers.deepgram.com/docs/tts-models#voices-and-languages
+                  //
+                  // CURRENT LIMITATIONS:
+                  // - TTS only supports English and Spanish voices
+                  // - STT supports 25+ languages (see: https://developers.deepgram.com/docs/models-languages-overview)
+                  // - All non-EN/ES languages fall back to English voice for audio output
+                  //
                   const getVoiceModel = (language) => {
                     const voiceMap = {
-                      en: "aura-asteria-en", // English - Natural female voice
-                      es: "aura-asteria-en", // Spanish - Use English model for compatibility
-                      fr: "aura-stella-fr", // French - Natural female voice
-                      de: "aura-asteria-en", // German - Use English model for now
-                      pt: "aura-asteria-en", // Portuguese - Use English model for now
-                      it: "aura-asteria-en", // Italian - Use English model for now
-                      ja: "aura-asteria-en", // Japanese - Use English model for now
-                      hi: "aura-asteria-en", // Hindi - Use English model for now
-                      ru: "aura-asteria-en", // Russian - Use English model for now
-                      nl: "aura-asteria-en", // Dutch - Use English model for now
+                      // English voices (Aura-2 recommended)
+                      en: "aura-2-asteria-en", // English - Clear, confident, energetic female voice
+
+                      // Spanish voices (Aura-2 available)
+                      es: "aura-2-celeste-es", // Spanish - Clear, energetic Colombian female voice
+
+                      // All other languages fall back to English voice
+                      // (TTS only supports EN/ES, but STT supports many more languages)
+                      fr: "aura-2-asteria-en", // French → English voice
+                      de: "aura-2-asteria-en", // German → English voice
+                      pt: "aura-2-asteria-en", // Portuguese → English voice
+                      it: "aura-2-asteria-en", // Italian → English voice
+                      ja: "aura-2-asteria-en", // Japanese → English voice
+                      hi: "aura-2-asteria-en", // Hindi → English voice
+                      ru: "aura-2-asteria-en", // Russian → English voice
+                      nl: "aura-2-asteria-en", // Dutch → English voice
+                      zh: "aura-2-asteria-en", // Chinese → English voice
+                      da: "aura-2-asteria-en", // Danish → English voice
+                      sv: "aura-2-asteria-en", // Swedish → English voice
+                      no: "aura-2-asteria-en", // Norwegian → English voice
+                      pl: "aura-2-asteria-en", // Polish → English voice
+                      ko: "aura-2-asteria-en", // Korean → English voice
+                      fi: "aura-2-asteria-en", // Finnish → English voice
+                      cs: "aura-2-asteria-en", // Czech → English voice
+                      bg: "aura-2-asteria-en", // Bulgarian → English voice
+                      ca: "aura-2-asteria-en", // Catalan → English voice
+                      et: "aura-2-asteria-en", // Estonian → English voice
+                      uk: "aura-2-asteria-en", // Ukrainian → English voice
+                      tr: "aura-2-asteria-en", // Turkish → English voice
+                      id: "aura-2-asteria-en", // Indonesian → English voice
+                      ta: "aura-2-asteria-en", // Tamil → English voice
                     };
-                    return voiceMap[language] || "aura-asteria-en"; // Default to English
+                    return voiceMap[language] || "aura-2-asteria-en"; // Default to English
                   };
 
                   const voiceModel = getVoiceModel(user.language);
