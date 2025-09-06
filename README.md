@@ -1,19 +1,75 @@
-# **Real-Time Video Chat with Multi-User Translation**
+# **Real-Time Video Multi-User Translation**
 
-A production-ready video chat application with real-time speech translation powered by Vonage Video API, Deepgram STT/TTS, and Google Translate. Features individual user language preferences and bidirectional translation.
+Vonage Video Application with real-time speech translation powered by Vonage Video API Audio Connector, Deepgram STT/TTS, and Google Translate. Features individual user language preferences and bidirectional translation.
 
-## **🎯 Features**
+## Example of Application Demo
 
-- **✅ Multi-User Translation**: Individual language preferences with support for 25+ languages
-- **✅ Language-Aware STT**: User-specific Deepgram language configuration for optimal transcription accuracy
-- **✅ Smart Translation**: Source language hints and improved Google Translate integration
-- **✅ Real-Time Audio Processing**: Complete STT→Translation→TTS pipeline with 80.2KB+ audio delivery
-- **✅ Per-User Audio Connectors**: Individual audio processing for each participant
-- **✅ Language Preference Management**: Persistent user language settings with dynamic STT reconfiguration
-- **✅ Production-Ready Architecture**: Comprehensive session management and error handling
-- **✅ Professional Logging**: Complete pipeline monitoring with language-specific debugging
+**Use Case Scenario:** French ←→ Spanish bidirectional translation
 
-## **🏗️ Architecture Overview**
+- **User A speaks French:** "Bonjour, je t'aime" ←→ Audio Connector A ←→ STT → Translation→TTS ←→ **User B hears translation:** "Hola, te amo". **User A hears nothing:** prevents audio feedback.
+- **User B speaks Spanish:** "¿Dónde está ahora?" ←→ Audio Connector B ←→ STT → Translation→TTS ←→ **User A hears translation:** "Où est-il maintenant?". **User B hears nothing:** prevents audio feedback.
+
+## Complete Pipeline Flow
+
+1. **Web Client Setup:** User A connects via browser, sets language preference (e.g., French)
+2. **Audio Connector Init:** `addUserToSession()` replaces web client WebSocket with Audio Connector WebSocket
+3. **Language Preservation:** User A's language preference ("fr") is preserved during WebSocket replacement
+4. **STT Processing:** Deepgram receives audio with language-optimized configuration (`fr`)
+5. **Translation:** Google Translate uses source language hints for accuracy
+6. **TTS Generation:** Deepgram TTS generates audio (Spanish native voice or English fallback)
+7. **Audio Delivery:** TTS audio sent to target User B's Audio Connector (NOT back to speaker User A)
+
+## **Table of Contents**
+
+### **Getting Started**
+
+- [Features](#-features)
+- [Architecture Overview](#️-architecture-overview)
+- [Prerequisites](#-prerequisites)
+- [Quick Start](#-quick-start)
+- [How to Use](#-how-to-use)
+
+### **Language & Translation**
+
+- [Supported Languages](#-supported-languages)
+- [Language-Aware STT Configuration](#-language-aware-stt-configuration)
+- [STT/TTS Provider Comparison Analysis](#-stttts-provider-comparison-analysis)
+
+### **Technical Documentation**
+
+- [Complete Frontend/Backend Flow Documentation](#-complete-frontendbackend-flow-documentation)
+- [System Requirements & Testing](#-system-requirements--testing)
+- [API Endpoints](#-api-endpoints)
+- [Logging & Monitoring](#-logging--monitoring)
+
+### **Development & Architecture**
+
+- [Development](#️-development)
+- [Audio Connector UI Management](#️-audio-connector-ui-management)
+- [Long Sentence Detection & Utterance Optimization](#️-long-sentence-detection--utterance-optimization)
+
+### **Production & Maintenance**
+
+- [Readiness Summary](#-readiness-summary)
+- [Performance Notes](#-performance-notes)
+- [Troubleshooting](#-troubleshooting)
+- [Refactoring Changelog](#-refactoring-changelog)
+
+### **Resources**
+
+- [Related Documentation](#-related-documentation)
+
+---
+
+## **Features**
+
+- **Language-Aware STT**: User-specific Deepgram language configuration for optimal transcription accuracy
+- **Smart Translation**: Source language hints and improved Google Translate integration
+- **Per-User Audio Connectors**: Individual audio processing for each participant
+- **Language Preference Management**: Persistent user language settings with dynamic STT reconfiguration
+- **Logging**: Complete pipeline monitoring with language-specific debugging
+
+## **Architecture Overview**
 
 ```text
 User 1 (Language A) ←→ Audio Connector 1 ←→ Language-Aware STT→Translation→TTS ←→ User 2 (Language B)
@@ -25,10 +81,10 @@ User 2 (Language B) ←→ Audio Connector 2 ←→ Language-Aware STT→Transla
 1. **Individual Audio Capture**: Each user has dedicated Audio Connector
 2. **Language-Aware STT**: User audio → Deepgram STT (user's preferred language) → Transcribed text
 3. **Smart Translation**: Source text → Google Translate (with language hints) → Target text
-4. **TTS with Voice Limitations**: Translated text → Deepgram TTS (limited voice selection) → Audio stream
+4. **TTS with Voice Limitations**: Translated text → Deepgram TTS (limited voice accent) → Audio stream
 5. **Bidirectional Playback**: Audio stream → Target user's Audio Connector
 
-### **⚠️ Important: TTS Voice Limitations**
+### **Important: Deepgram TTS Voice Limitations**
 
 **Deepgram TTS Language Support:**
 
@@ -40,7 +96,7 @@ User 2 (Language B) ←→ Audio Connector 2 ←→ Language-Aware STT→Transla
 
 - French user speaks: "Bonjour" → STT: Perfect French transcription
 - Translation: "Bonjour" → "Hello" (accurate)
-- German user hears: English voice saying "Hello" (not German accent)
+- German user hears: English voice saying "Hello" in German but not in German accent
 
 This is a **Deepgram limitation**, not a system bug. Text translation is perfect; voice accent is limited.
 
@@ -48,10 +104,10 @@ This is a **Deepgram limitation**, not a system bug. Text translation is perfect
 
 - **Dynamic STT Configuration**: Uses user's language preference (e.g., `fr`, `es`, `de`) instead of generic `multi`
 - **Source Language Hints**: Translation accuracy improved by using speaker's language as source hint
-- **Fallback Strategy**: Gracefully falls back to multi-language detection for unknown users
+- **Fallback Strategy**: Gracefully falls back to multi-language detection when users haven't selected a language preference
 - **Reconnection Management**: Audio Connector can reconnect when user changes language preference
 
-## **🌍 Supported Languages**
+## **Supported Languages**
 
 ### **Enhanced Language Support (25+ Languages)**
 
@@ -67,21 +123,20 @@ This is a **Deepgram limitation**, not a system bug. Text translation is perfect
 
 **Translation Coverage:**
 
-- **Full Pipeline (STT + Translation + TTS)**: All supported languages with language-aware STT optimization
+- **Smart Translation**: Uses speaker's language preference as source hint for improved accuracy
 - **Optimized STT Languages**: French (`fr`), Spanish (`es`), English (`en-US`), German (`de`), Italian (`it`), Portuguese (`pt-BR`), Japanese (`ja`), Korean (`ko`), Chinese (`zh-CN`), Russian (`ru`), Arabic (`ar`), Hindi (`hi`), Thai (`th`), Turkish (`tr`)
 - **Multi-Language Fallback**: Unknown languages use multi-language detection with auto-translation
-- **Smart Translation**: Uses speaker's language preference as source hint for improved accuracy
 
 ### **📊 Complete Language Support Matrix**
 
-| Language       | STT Quality        | Translation | TTS Voice         | User Experience               |
-| -------------- | ------------------ | ----------- | ----------------- | ----------------------------- |
-| **English**    | ✅ Native `en-US`  | ✅ Perfect  | ✅ Native English | **Perfect**                   |
-| **Spanish**    | ✅ Native `es`     | ✅ Perfect  | ✅ Native Spanish | **Perfect**                   |
-| **French**     | ✅ Native `fr`     | ✅ Perfect  | ❌ English voice  | **Good text, foreign accent** |
-| **German**     | ✅ Native `de`     | ✅ Perfect  | ❌ English voice  | **Good text, foreign accent** |
-| **Chinese**    | ✅ Native `zh-CN`  | ✅ Perfect  | ❌ English voice  | **Good text, foreign accent** |
-| **All Others** | ✅ Native or Multi | ✅ Perfect  | ❌ English voice  | **Good text, foreign accent** |
+| Language       | STT Quality        | Translation | TTS Voice         | User Experience                  |
+| -------------- | ------------------ | ----------- | ----------------- | -------------------------------- |
+| **English**    | ✅ Native `en-US`  | ✅ Perfect  | ✅ English accent | **Perfect**                      |
+| **Spanish**    | ✅ Native `es`     | ✅ Perfect  | ✅ Spanish accent | **Perfect**                      |
+| **French**     | ✅ Native `fr`     | ✅ Perfect  | ❌ English accent | **French text, English accent**  |
+| **German**     | ✅ Native `de`     | ✅ Perfect  | ❌ English accent | **German text, English accent**  |
+| **Chinese**    | ✅ Native `zh-CN`  | ✅ Perfect  | ❌ English accent | **Chinese text, English accent** |
+| **All Others** | ✅ Native or Multi | ✅ Perfect  | ❌ English accent | **Native text, English accent**  |
 
 **Key Takeaway**: Translation accuracy is perfect for all languages. Voice accent limitations only affect audio playback experience.
 
@@ -116,11 +171,11 @@ This is a **Deepgram TTS limitation**. For native voice accents in 40+ languages
 - [Deepgram TTS Models & Voices](https://developers.deepgram.com/docs/tts-models)
 - [Deepgram STT Language Support](https://developers.deepgram.com/docs/models-languages-overview)
 
-## **🎯 Language-Aware STT Configuration**
+## **Language-Aware STT Configuration**
 
 ### **Dynamic Language Selection**
 
-The system now intelligently configures Deepgram STT based on user language preferences:
+The system configures Deepgram STT based on user language preferences:
 
 **Before (Generic Configuration):**
 
@@ -141,6 +196,31 @@ const deepgramLanguageMap = {
 
 language: userLanguage ? deepgramLanguageMap[userLanguage] : "multi";
 ```
+
+### **Language Preference Fallback Behavior**
+
+**User Has Selected Language:**
+
+```javascript
+// User selected "French" from dropdown
+userLanguage = "fr";
+deepgramSTTLanguage = "fr"; // Optimized French STT
+```
+
+**User Has NOT Selected Language:**
+
+```javascript
+// User hasn't clicked "Set Language" yet
+userLanguage = null;
+deepgramSTTLanguage = "multi"; // Auto-detect any language
+```
+
+**When Multi-Language Detection is Used:**
+
+- ✅ **No Language Selected**: User connects Audio Connector without setting language preference
+- ✅ **Auto-Detection**: Deepgram automatically detects spoken language (French, Spanish, English, etc.)
+- ⚠️ **Lower Accuracy**: Multi-language detection is less accurate than language-specific models
+- 🔄 **Reconnection Available**: User can select language later, triggering Audio Connector reconnection with optimized STT
 
 ### **Translation Accuracy Improvements**
 
@@ -165,14 +245,14 @@ translate(text, {
 });
 ```
 
-## **📋 Prerequisites**
+## **Prerequisites**
 
 - **Node.js** v16+ installed
 - **Vonage Video API** account and application
 - **Deepgram API** account and API key
 - **ngrok** or similar tunneling service (for development)
 
-## **🚀 Quick Start**
+## **Quick Start**
 
 ### **1. Clone and Install**
 
@@ -194,7 +274,7 @@ Edit `.env` with your credentials:
 
 ```env
 APP_ID=your_vonage_application_id
-PORT=3000
+PORT=3002
 DEEPGRAM_API_KEY=your_deepgram_api_key
 WEBSOCKET_SERVER_URI=wss://your-domain.com
 NODE_ENV=development
@@ -229,47 +309,23 @@ WEBSOCKET_SERVER_URI=wss://NGROK_URL
 node video-chat-server.js
 ```
 
-## **📖 How to Use**
+## **Run a Demo**
 
-### **Starting a Session**
+### Translation requires 2+ users with different language preferences
 
 1. Navigate to `http://localhost:3002` (or your public ngrok url: http://NGROK_URL)
 2. A new video session will be created automatically
-3. Copy the join link to invite 2nd participant
-
-### **Enabling Translation**
-
-1. **Invite Multiple Users**: Translation requires **2+ users with different language preferences**
-2. **Set Language Preferences**: Each user selects their preferred language (English/Spanish/etc.)
-3. **Click "Start Deepgram"**: Begins individual Audio Connector for that user
-4. **Speak Naturally**: System automatically:
+3. Copy the join link to invite 2nd participant to use it on different device.
+4. **Set Language Preferences**: Each user selects their preferred language (English/Spanish/etc.)
+5. **Each User must click "Start Deepgram"**: Begins individual Audio Connector for that user
+6. **Speak Naturally**: System automatically:
    - **STT**: Transcribes speech using user's specific language (e.g., French → `fr`)
    - **Translation**: Translates using Google Translate with source language hints
    - **TTS**: Generates audio using available voice (English/Spanish only)
    - **Audio Delivery**: Plays translated speech via Audio Connectors
    - **UI Display**: Shows real-time transcriptions with speaker identification
 
-### **🎯 Language Pipeline Examples**
-
-**English ↔ Spanish (Full Native Support):**
-
-```
-User A (English) → "Hello" → Deepgram STT (en-US) → "Hello"
-→ Google Translate (en→es) → "Hola" → Deepgram TTS (Spanish voice) → User B hears native Spanish
-```
-
-**French ↔ German (STT Optimized, English Voice TTS):**
-
-```
-User A (French) → "Bonjour" → Deepgram STT (fr) → "Bonjour"
-→ Google Translate (fr→de) → "Hallo" → Deepgram TTS (English voice) → User B hears English accent saying "Hallo"
-```
-
-**What Users Experience:**
-
-- ✅ **Perfect transcription** in their native language
-- ✅ **Accurate translation** using Google Translate
-- ⚠️ **Limited voice accents** (English/Spanish only)
+### **Language Pipeline Examples**
 
 ### **⚠️ Important: Translation Logic**
 
@@ -791,7 +847,7 @@ This complete flow documentation provides the foundation for implementing the sa
 
 ### **✅ Single-User Testing Results**
 
-**Expected Behavior**: When testing with only **one user**, you will **NOT hear any translation audio**. This is correct!
+**Expected Behavior**: When testing with only **one user**, you will **NOT hear any translation audio**. This is the correct behavior!
 
 #### **Why No Translation with Single User:**
 
@@ -847,7 +903,7 @@ To test the **full translation pipeline**, you need:
 | **Different Languages** | 2+    | English + Spanish | ✅ Yes               | ✅ Yes           |
 | **Same Device (tabs)**  | 2+    | Different         | ✅ Yes               | ⚠️ Feedback Loop |
 
-## **🔧 API Endpoints**
+## **API Endpoints**
 
 | Endpoint                   | Method | Description                   |
 | -------------------------- | ------ | ----------------------------- |
@@ -896,7 +952,7 @@ The application provides comprehensive logging with different categories:
 ### **Project Structure**
 
 ```
-├── video-chat-server.js    # Main application server
+├── video-chat-server.js   # Main application server
 ├── update-env.js          # Development setup with ngrok
 ├── package.json           # Dependencies (cleaned & optimized)
 ├── views/
@@ -908,23 +964,7 @@ The application provides comprehensive logging with different categories:
 └── README.md            # This file
 ```
 
-### **Key Dependencies**
-
-- **@vonage/video**: Video API integration
-- **@deepgram/sdk**: Speech-to-text and text-to-speech
-- **google-translate-api-x**: Translation services
-- **express**: Web framework
-- **ws**: WebSocket server
-- **ejs**: Template engine
-
-## **🔒 Security Considerations**
-
-- Private keys and API credentials are not committed to repository
-- CORS is configured for security
-- Session tokens have appropriate scoping
-- WebSocket connections are properly validated
-
-## **🎛️ Audio Connector UI Management**
+## **Audio Connector UI Management**
 
 ### **Important: Audio Connector Subscription Behavior**
 
@@ -1007,58 +1047,8 @@ Audio Connector streams are reliably identified by these properties:
 
 1. **Required Subscription**: You must subscribe to hear the translated audio
 2. **Hidden Container**: Off-screen positioning keeps it invisible to users
-3. **Audio-Only**: `subscribeToVideo: false` prevents video processing
-4. **Resource Cleanup**: Proper removal when stream ends
-5. **No SDK Interference**: Works within SDK constraints
 
-## **🎨 User Interface Design**
-
-### **Enhanced Layout & Styling**
-
-The application features a modern, professional interface with optimal user experience:
-
-#### **Layout Hierarchy:**
-
-1. **User Information Panel** (Top Priority)
-
-   - Connection ID display
-   - Language preference selection
-   - Persistent across sessions
-
-2. **Session Management** (Secondary)
-
-   - Shareable session links
-   - Translation controls (Start/Stop Deepgram)
-
-3. **Real-Time Transcription** (Live Feedback)
-
-   - Scrollable transcription log
-   - Speaker identification
-   - Translation results with timestamps
-
-4. **Video Communication** (Core Functionality)
-   - Optimized video tile sizing (320x240px)
-   - Clean, borderless design
-   - Responsive layout
-
-#### **Visual Design Features:**
-
-- **Consistent Styling**: 5px rounded borders across all containers
-- **Professional Spacing**: 20px body padding, proper margins
-- **Enhanced Typography**: Monospace fonts for transcription clarity
-- **Responsive Design**: Optimized for different screen sizes
-- **Clean Video Layout**: Borderless tiles with rounded corners
-
-#### **CSS Organization:**
-
-All styling has been moved to `views/css/style.css` for better maintainability:
-
-- **Body-level styling**: Global padding and typography
-- **Container styling**: Consistent component design
-- **Video optimization**: OpenTok widget styling
-- **Transcription enhancement**: Improved readability and scroll behavior
-
-## **�️ Long Sentence Detection & Utterance Optimization**
+## **Long Sentence Detection & Utterance Optimization**
 
 ### **Enhanced Deepgram Configuration for Long Sentences**
 
@@ -1083,10 +1073,6 @@ dgConnection = deepgram.listen.live({
   smart_format: true, // Better sentence structure detection
   interim_results: false, // Only final results for accuracy
 
-  // === SPEAKER DIARIZATION ===
-  diarize: true, // Speaker separation
-  diarize_version: "2024-01", // Latest diarization model
-
   // === PERFORMANCE TUNING ===
   endpointing: 500, // Faster initial response
   no_delay: false, // Allow slight delay for accuracy
@@ -1095,13 +1081,12 @@ dgConnection = deepgram.listen.live({
 
 #### **Key Parameters Explained:**
 
-| Parameter          | Value     | Purpose                                             | Impact                                    |
-| ------------------ | --------- | --------------------------------------------------- | ----------------------------------------- |
-| `utterance_end_ms` | 2000ms    | Wait 2 seconds of silence before ending utterance   | **Prevents premature sentence splitting** |
-| `vad_turnoff`      | 1000ms    | Voice Activity Detection timeout for natural pauses | **Allows breathing/thinking pauses**      |
-| `smart_format`     | true      | Enhanced sentence structure detection               | **Better punctuation and formatting**     |
-| `model`            | "nova-2"  | More stable real-time model                         | **Reduces oversensitive detection**       |
-| `diarize_version`  | "2024-01" | Latest speaker separation model                     | **More accurate speaker identification**  |
+| Parameter          | Value    | Purpose                                             | Impact                                    |
+| ------------------ | -------- | --------------------------------------------------- | ----------------------------------------- |
+| `utterance_end_ms` | 2000ms   | Wait 2 seconds of silence before ending utterance   | **Prevents premature sentence splitting** |
+| `vad_turnoff`      | 1000ms   | Voice Activity Detection timeout for natural pauses | **Allows breathing/thinking pauses**      |
+| `smart_format`     | true     | Enhanced sentence structure detection               | **Better punctuation and formatting**     |
+| `model`            | "nova-2" | More stable real-time model                         | **Reduces oversensitive detection**       |
 
 #### **Enhanced Event Monitoring:**
 
@@ -1148,11 +1133,6 @@ When testing long sentences, you'll now see logs like:
   duration: "1666ms",
   trigger: "utterance_end_ms timeout"
 }
-[2025-09-03T17:00:02.000Z] 👥 Speaker diarization completed {
-  speakers: ["0"],
-  totalSpeakers: 1,
-  speakerData: { "0": "I'm very happy about that you attended" }
-}
 ```
 
 #### **Testing Guidelines:**
@@ -1173,781 +1153,47 @@ When testing long sentences, you'll now see logs like:
 
 This optimization ensures that natural speech patterns are preserved while maintaining real-time translation performance.
 
-### **Audio Connector Issues**
-
-- Ensure `mediaMode: "routed"` is set for video sessions
-- Verify WebSocket URI is accessible from Vonage servers
-- Check that port 443 (WSS) is properly configured
-
-### **Translation Not Working**
-
-- **"I don't hear any translation audio"**: ✅ **This is normal** if you're testing with:
-  - Single user (need 2+ users for translation)
-  - Users with same language preference (no translation needed)
-  - Same device tabs (creates feedback loops - use separate devices)
-- **"Translation failed, using original text"**: Check server logs for `log.debug is not a function` error
-  - **Fix**: Replace any `log.debug()` calls with `log.info()` in `video-chat-server.js`
-  - **Cause**: The logging utility doesn't have a `debug` method, only `info`, `success`, `warning`, `error`, `pipeline`, `audio`
-- Verify Deepgram API key is valid and has sufficient credits
-- Check that audio sample rate is 16kHz
-- Ensure internet connectivity for Google Translate API
-
 ### **"No Audio but Transcription Works"**
 
 - **Expected**: Single-user testing will transcribe but not translate
 - **Solution**: Test with 2 users on separate devices with different language preferences
 - **Logs to check**: Look for `"No other users found to receive translations"` (normal for single user)
 
-### **Connection Problems**
-
-- Check firewall settings for WebSocket connections
-- Verify ngrok tunnel is active (in development)
-- Ensure all environment variables are properly set
-
-## **📈 Performance Notes**
-
-- Audio is processed in 640-byte chunks for optimal streaming
-- Only non-English speech generates TTS to reduce processing
-- Audio data logging is sampled to prevent log spam
-- Graceful shutdown handling prevents resource leaks
-
-## **🤝 Contributing**
-
-1. Create a feature branch: `git checkout -b feature-name`
-2. Make your changes with proper logging
-3. Test the complete STT→Translation→TTS pipeline
-4. Update documentation as needed
-5. Submit a pull request
-
-## **📄 License**
-
-This project is licensed under the ISC License - see the package.json file for details.
-
-## **🔗 Related Documentation**
+## **Related Documentation**
 
 - [Vonage Video API Docs](https://developer.vonage.com/en/video/overview)
 - [Deepgram API Docs](https://developers.deepgram.com/)
 - [Audio Connector Guide](https://developer.vonage.com/en/video/guides/audio-connector)
 - [Google Translate API](https://cloud.google.com/translate/docs)
 
-## **🔄 Refactoring Changelog**
-
-### **Version 1.0 - Initial Refactor**
-
-#### **Code Quality Improvements**
-
-- ✅ **Enhanced Logging**: Added comprehensive logging system with timestamps, categories, and structured data
-- ✅ **Error Handling**: Implemented proper try-catch blocks and error management throughout
-- ✅ **Code Documentation**: Added detailed comments explaining the STT→Translation→TTS pipeline
-- ✅ **Dependency Cleanup**: Removed 13 unused dependencies (54% reduction in package size)
-
-#### **Architecture Improvements**
-
-- ✅ **Session Management**: Improved session creation with proper error handling
-- ✅ **WebSocket Management**: Enhanced connection handling with proper cleanup
-- ✅ **Audio Processing**: Optimized audio buffer handling and chunking
-- ✅ **Pipeline Monitoring**: Added step-by-step pipeline tracking and metrics
-
-#### **Developer Experience**
-
-- ✅ **Consistent Naming**: Applied consistent naming conventions throughout codebase
-- ✅ **Structured Comments**: Added comprehensive inline documentation
-- ✅ **Performance Logging**: Added audio processing metrics and connection monitoring
-- ✅ **Graceful Shutdown**: Implemented proper server shutdown handling
-
-#### **Technical Improvements**
-
-- ✅ **Memory Management**: Proper cleanup of Deepgram connections and WebSocket resources
-- ✅ **Audio Optimization**: Removed WAV headers and optimized chunk sizes for real-time streaming
-- ✅ **Connection Stability**: Enhanced WebSocket error handling and reconnection logic
-- ✅ **Monitoring**: Added detailed pipeline step logging for debugging and monitoring
-
-### **Version 4.0 - Language-Aware STT & Smart Translation** ✅ **NEW RELEASE**
-
-#### **🎯 Language-Aware STT Configuration**
-
-- **✅ Dynamic Language Selection**: Deepgram STT now uses user's preferred language instead of generic "multi"
-- **✅ 14+ Language-Specific Models**: French (`fr`), Spanish (`es`), English (`en-US`), German (`de`), Italian (`it`), Portuguese (`pt-BR`), Japanese (`ja`), Korean (`ko`), Chinese (`zh-CN`), Russian (`ru`), Arabic (`ar`), Hindi (`hi`), Thai (`th`), Turkish (`tr`)
-- **✅ Intelligent Fallback**: Graceful fallback to multi-language detection for unknown users
-- **✅ Enhanced Accuracy**: Significant improvement in transcription quality for non-English languages
-
-#### **🧠 Smart Translation Improvements**
-
-- **✅ Source Language Hints**: Google Translate now uses speaker's language preference instead of auto-detection
-- **✅ Better Error Handling**: More robust translation with language context and fallback strategies
-- **✅ Improved Accuracy**: Enhanced translation quality through explicit source language specification
-
-#### **🔄 Dynamic Reconfiguration**
-
-- **✅ Language Change Notifications**: Audio Connector notified when users change language preferences
-- **✅ Reconnection Management**: System can request Audio Connector reconnection for optimal STT
-- **✅ Real-Time Updates**: Language preferences applied immediately without full restart
-
-#### **📊 Enhanced Debugging & Monitoring**
-
-- **✅ Language-Specific Logging**: Transcript logs now show user language and Deepgram language configuration
-- **✅ Pipeline Visibility**: Clear tracking of which language model is being used for each user
-- **✅ Translation Context**: Better error messages and debugging information with language context
-
-#### **🔧 Technical Improvements**
-
-**Before (Generic Configuration):**
-
-```javascript
-language: "multi"; // One-size-fits-all approach
-sourceLanguage: "auto"; // Generic auto-detection
-```
-
-**After (Language-Aware Configuration):**
-
-```javascript
-language: userLanguage ? deepgramLanguageMap[userLanguage] : "multi"; // User-specific
-from: speakerLanguage; // Explicit source language hint
-```
-
-#### **📈 Performance & Accuracy Gains**
-
-- **STT Accuracy**: ~25% improvement for French, Spanish, German speakers
-- **Translation Quality**: ~30% improvement through source language hints
-- **Error Reduction**: ~40% fewer translation failures due to better language context
-- **User Experience**: Immediate language preference application
-
-### **Version 3.0 - UI/UX Improvements & Enhanced Language Support** ✅ **COMPLETED**
-
-#### **✅ Enhanced User Interface**
-
-- **✅ Improved Layout Hierarchy**: Moved user info and language controls to the top for better UX
-- **✅ Enhanced Visual Design**: Consistent styling with rounded borders and proper spacing
-- **✅ Responsive Video Layout**: Optimized video tile sizing (320x240px) for both subscriber and publisher
-- **✅ Clean CSS Organization**: Moved all styling from inline to external CSS file for maintainability
-- **✅ Professional Spacing**: Added proper padding and margins throughout the interface
-- **✅ Transcription Enhancement**: Improved transcription log with scroll functionality and better readability
-
-#### **✅ Expanded Language Support**
-
-- **✅ 25+ Language Options**: Added comprehensive language dropdown with all Deepgram-supported languages
-- **✅ Updated Voice Configuration**: Enhanced TTS voice mapping with Aura-2 models
-- **✅ Language Documentation**: Added official Deepgram documentation references
-- **✅ Smart Fallback System**: Proper fallback to English TTS for non-English/Spanish languages
-
-#### **✅ Code Quality & Maintainability**
-
-- **✅ CSS Modularization**: Separated all styling to external stylesheet
-- **✅ Enhanced Documentation**: Added comprehensive voice model documentation and API references
-- **✅ Improved Visual Consistency**: Standardized component styling and spacing
-- **✅ Better Developer Experience**: Cleaner code organization and maintenance
-
-#### **✅ User Experience Enhancements**
-
-**Interface Flow Optimization:**
-
-```text
-1. User Connection & Language Selection (Top Priority)
-2. Session Management & Controls (Secondary)
-3. Real-Time Transcription Display (Live Feedback)
-4. Video Communication (Core Functionality)
-```
-
-**Visual Improvements:**
-
-- **Consistent Rounded Borders**: 5px radius across all containers
-- **Professional Spacing**: 20px body padding, proper margins between sections
-- **Enhanced Readability**: Monospace fonts for transcription, better line spacing
-- **Clean Video Layout**: Borderless video tiles with rounded corners
-
-#### **✅ Technical Improvements**
-
-- **Voice Model Updates**: Using latest Aura-2 models for optimal quality
-- **Language Mapping**: Comprehensive voice mapping for all supported languages
-- **CSS Performance**: Optimized styling with external stylesheet
-- **Documentation**: Added official Deepgram API references and limitations
-
-### **Version 2.0 - Multi-User Language Preference System** ✅ **COMPLETED**
-
-#### **✅ Individual User Processing**
-
-- **✅ Completed**: Individual Audio Connector per user (no diarization conflicts)
-- **✅ Completed**: Optimized response times (1500ms buffer for natural speech)
-- **✅ Completed**: Using nova-2 model for production stability
-- **✅ Completed**: ConnectionId-based user identification and session tracking
-
-#### **✅ Multi-User Translation Features**
-
-- **✅ Language Preference UI**: Users select preferred language (10+ languages supported)
-- **✅ Individual Audio Connectors**: Separate Audio Connector per user for isolated processing
-- **✅ Smart Translation**: Only translates when users have different language preferences
-- **✅ Multi-User Session Management**: Robust user preference and connection state tracking
-- **✅ Real-Time Language Management**: Dynamic language preference updates and persistence
-
-#### **✅ Production-Ready Architecture**
-
-**Complete Multi-User Pipeline:**
-
-```text
-User A (Spanish) ←→ Audio Connector A ←→ STT→Translation→TTS ←→ User B (English)
-User B (English) ←→ Audio Connector B ←→ STT→Translation→TTS ←→ User A (Spanish)
-```
-
-#### **✅ Verified Performance Improvements**
-
-| Metric                  | V1.0 (Diarization) | V2.0 (Individual) | Improvement          |
-| ----------------------- | ------------------ | ----------------- | -------------------- |
-| **Response Time**       | 2000ms             | 1500ms            | **25% faster**       |
-| **Speaker Accuracy**    | 75% (confusion)    | 100% (per-user)   | **+25% accuracy**    |
-| **Translation Quality** | Variable           | Consistent        | **Production-ready** |
-| **Simultaneous Speech** | Interference       | Independent       | **Full isolation**   |
-| **Audio Delivery**      | Inconsistent       | 80.2KB+ confirmed | **Reliable TTS**     |
-
-#### **✅ Completed System Features**
-
-- **✅ Spanish↔English Bidirectional Translation**: Full end-to-end pipeline working
-- **✅ TTS Audio Generation**: Deepgram TTS with aura-asteria-en voice model
-- **✅ Audio Connector Lifecycle**: Proper start/stop with cleanup
-- **✅ Voice Model Compatibility**: Resolved "Bad Request" errors with compatible models
-- **✅ Session Management**: User tracking, language persistence, connection handling
-- **✅ Error Handling**: Comprehensive error handling and graceful degradation
-- **✅ Duplicate Prevention**: Prevents multiple Audio Connectors per user
-
-#### **✅ Testing Status**
-
-- **✅ Core Translation**: Spanish→English and English→Spanish confirmed working
-- **✅ Audio Delivery**: 80.2KB TTS audio successfully transmitted and played
-- **✅ Multi-User Management**: Connection tracking and session cleanup verified
-- **✅ Production Testing**: Ready for deployment with separate devices
-- **⚠️ Development Note**: Same-device testing creates audio feedback (expected limitation)
-
-#### **Development Workflow**
-
-```bash
-# Recommended development setup
-node update-env.js  # Auto-starts ngrok + server
-
-# Features:
-# ✅ Automatic ngrok tunnel creation
-# ✅ Environment variable updates
-# ✅ Server startup with hot reload
-# ✅ Ready for multi-user testing
-```
-
----
-
-## **📋 Production Readiness Summary**
-
-### **✅ Completed & Verified Features**
-
-#### **Core Translation System**
-
-- **Multi-User Translation**: Spanish↔English bidirectional translation working
-- **Individual Audio Processing**: Per-user Audio Connectors prevent conflicts
-- **TTS Audio Delivery**: 80.2KB+ audio successfully transmitted and played
-- **Session Management**: ConnectionId-based tracking with proper cleanup
-- **Language Persistence**: User preferences maintained across reconnections
-
-#### **Enhanced Language Support**
-
-- **25+ Languages Supported**: Comprehensive STT support via Nova-3 and Nova-2 models
-- **Professional Voice Models**: Optimized Aura-2 TTS voices for English and Spanish
-- **Smart Fallback System**: Non-EN/ES languages fall back to English TTS
-- **Voice Model Compatibility**: Production-stable voice configuration with official documentation
-
-#### **Professional User Interface**
-
-- **Modern Layout Design**: Optimized hierarchy with user controls at top
-- **Responsive Video Layout**: 320x240px video tiles with clean, borderless design
-- **Enhanced Transcription**: Scrollable log with speaker identification and timestamps
-- **Consistent Styling**: Professional spacing, rounded borders, external CSS organization
-- **Audio Connector Integration**: Invisible UI integration for seamless TTS audio delivery
-
-#### **Technical Excellence**
-
-- **Error Handling**: Comprehensive error management and graceful degradation
-- **Performance Optimization**: Efficient audio processing and resource management
-- **Code Organization**: Modular CSS, comprehensive documentation, maintainable architecture
-- **Production Logging**: Detailed monitoring and debugging capabilities
-
-### **🚀 Ready for Production**
-
-The system is **production-ready** for deployment with the following capabilities:
-
-#### **Full Pipeline Languages** (STT + Translation + TTS)
-
-- **English ↔ Spanish**: Complete bidirectional translation with native TTS voices
-
-#### **Partial Pipeline Languages** (STT + Translation + English TTS)
-
-- **25+ Languages**: French, German, Chinese, Japanese, Korean, Russian, Portuguese, Italian, Dutch, Hindi, and many more
-- **Translation Quality**: Full Google Translate integration
-- **Audio Output**: High-quality English TTS voice for all non-Spanish languages
-
-### **🔄 Development vs Production**
-
-- **Development**: Same-device testing creates audio feedback (expected limitation)
-- **Production**: Separate devices eliminate feedback automatically
+## **Refactoring Improvements**
+
+- **Dynamic Language Selection**: Deepgram STT now uses user's preferred language instead of generic "multi"
+- **Intelligent Fallback**: Graceful fallback to multi-language detection when users haven't selected a language preference
+- **Enhanced Accuracy**: Significant improvement in transcription quality for non-English languages
+- **Source Language Hints**: Google Translate now uses speaker's language preference instead of auto-detection
+- **Improved Accuracy**: Enhanced translation quality through explicit source language specification
+- **User Identification via SDK ConnectionId**: ConnectionId-based user identification and session tracking
+- **Language Preference UI**: Users select preferred language (10+ languages supported)
+- **Individual Audio Connectors**: Separate Audio Connector per user for isolated processing
+- **Smart Translation**: Only translates when users have different language preferences
+- **Multi-User Session Management**: Robust user preference and connection state tracking
+- **Real-Time Language Management**: Dynamic language preference updates and persistence
+
+### **Testing**
+
+- **Testing**: Same-device testing creates audio feedback (expected limitation)
+- **Testing**: Separate devices eliminate feedback automatically
 - **Testing**: Use phone + computer for realistic behavior validation
-
-### **📊 System Performance**
-
-| Metric                   | Performance         | Status              |
-| ------------------------ | ------------------- | ------------------- |
-| **Translation Accuracy** | 95%+ (Google API)   | ✅ Production Ready |
-| **TTS Audio Quality**    | Aura-2 Professional | ✅ Production Ready |
-| **Response Time**        | 1500ms average      | ✅ Production Ready |
-| **Language Coverage**    | 25+ languages       | ✅ Production Ready |
-| **UI/UX Quality**        | Professional        | ✅ Production Ready |
-| **Session Management**   | Robust & Reliable   | ✅ Production Ready |
-
-### **🎯 Deployment Readiness**
-
-**✅ Infrastructure:**
-
-- Scalable server architecture with proper resource management
-- Comprehensive error handling and graceful degradation
-- Professional logging and monitoring capabilities
-
-**✅ User Experience:**
-
-- Intuitive interface with optimal layout hierarchy
-- Comprehensive language support with clear fallback behavior
-- Real-time feedback with transcription and translation logging
-
-**✅ Technical Quality:**
-
-- Modular, maintainable codebase with external CSS organization
-- Official API integrations with proper documentation references
-- Production-tested voice models and translation pipeline
-
-**Current Status**: ✅ **COMPLETE PRODUCTION-READY TRANSLATION SYSTEM**
-
----
-
-## **🔍 STT/TTS Provider Comparison Analysis**
-
-### **📊 Major Provider Language Support Overview**
-
-Understanding the language limitations across different speech service providers is crucial for scaling multilingual applications. Here's a comprehensive comparison of Deepgram vs major alternatives:
-
-| Provider            | STT Languages  | TTS Languages                | Key Advantage      | Major Limitation      |
-| ------------------- | -------------- | ---------------------------- | ------------------ | --------------------- |
-| **Deepgram**        | 25+ languages  | **2 languages only** (EN/ES) | Fast, accurate STT | Severe TTS limitation |
-| **Google Cloud**    | 100+ languages | **40+ languages**            | Most comprehensive | Higher latency        |
-| **AWS**             | 100+ languages | **33+ languages**            | Good integration   | Limited neural voices |
-| **Microsoft Azure** | 100+ languages | **75+ languages**            | Best TTS coverage  | Complex pricing       |
-
-### **🎯 Detailed Provider Analysis**
-
-#### **1. Deepgram (Current Implementation)**
-
-**STT Support:** ✅ **Excellent (25+ languages)**
-
-- **Nova-3 Model Languages:** English, Spanish, French, German, Portuguese, Italian, Japanese, Hindi, Russian, Dutch
-- **Nova-2 Additional Languages:** Chinese (Mandarin), Danish, Swedish, Norwegian, Polish, Korean, Finnish, Czech, Bulgarian, Catalan, Estonian, Ukrainian, Turkish, Indonesian, Tamil, Vietnamese
-
-**TTS Support:** ❌ **Very Limited (2 languages only)**
-
-- **English:** `aura-2-asteria-en` (Clear, confident, energetic female voice)
-- **Spanish:** `aura-2-celeste-es` (Clear, energetic Colombian female voice)
-- **All other languages:** Fall back to English voice
-
-**Current Implementation:** Smart fallback system where all non-EN/ES languages use English voice for audio output.
 
 **Documentation:**
 
 - [Deepgram TTS Models & Languages](https://developers.deepgram.com/docs/tts-models#voices-and-languages)
 - [Deepgram STT Language Support](https://developers.deepgram.com/docs/models-languages-overview)
 
----
+#### **WebSocket Replacement Pattern (Working)**
 
-#### **2. Google Cloud Speech/TTS**
-
-**STT Support:** ✅ **Excellent (100+ languages)**
-
-- Supports most world languages with multiple regional variants
-- Advanced features: speaker diarization, punctuation, custom models
-- Multiple models: latest_long, latest_short, telephony, enhanced
-
-**TTS Support:** ✅ **Excellent (40+ languages)**
-
-- **Chirp 3 HD voices:** Natural, conversational AI voices in 30+ distinct styles
-- **Supported Languages:** Arabic, Bengali, Chinese, English variants, French, German, Hindi, Indonesian, Italian, Japanese, Korean, Norwegian, Portuguese, Spanish, Swedish, Vietnamese, and more
-- **Voice Types:** Standard, WaveNet, Neural2, Studio voices with advanced prosody
-
-**Key Advantage:** Most balanced STT/TTS language coverage with high-quality neural voices.
-
-**Example Language Coverage:**
-
-```javascript
-// Languages with both STT + native TTS support
-const googleFullSupport = [
-  "en",
-  "es",
-  "fr",
-  "de",
-  "it",
-  "pt",
-  "ja",
-  "ko",
-  "hi",
-  "ar",
-  "zh",
-  "ru",
-  "nl",
-  "sv",
-  "da",
-  "no",
-  "pl",
-  "cs",
-  "tr",
-  "vi",
-  // + 20+ more languages
-];
-```
-
----
-
-#### **3. Amazon AWS Polly/Transcribe**
-
-**STT Support:** ✅ **Excellent (100+ languages)**
-
-- Comprehensive language support with streaming and batch options
-- Custom vocabulary and language model support
-- Call Analytics features for English dialects
-- Real-time and batch transcription capabilities
-
-**TTS Support:** ✅ **Good (33+ languages)**
-
-- **Supported Languages:** Arabic, Chinese (Mandarin/Cantonese), Danish, Dutch, English variants, French, German, Hindi, Icelandic, Italian, Japanese, Korean, Norwegian, Polish, Portuguese, Romanian, Russian, Spanish, Swedish, Turkish, Welsh
-- **Neural voices:** High-quality synthesis with natural prosody
-- **SSML support:** Advanced speech markup for custom pronunciation
-
-**Key Advantage:** Strong AWS ecosystem integration with good enterprise features.
-
-**Voice Models Available:**
-
-- Standard voices (cost-effective)
-- Neural voices (high-quality, natural)
-- Long-form synthesis capabilities
-
----
-
-#### **4. Microsoft Azure Speech Services**
-
-**STT Support:** ✅ **Excellent (100+ languages)**
-
-- Comprehensive global language support including regional dialects
-- Custom Speech training available for domain-specific terms
-- Real-time and batch transcription with high accuracy
-- Advanced features: speaker recognition, language identification
-
-**TTS Support:** ✅ **Best (75+ languages)**
-
-- **Most comprehensive TTS coverage** including many African, Asian, and European languages
-- **Neural voices:** Multiple speaking styles and emotions per language
-- **Voice styles:** Conversational, cheerful, empathetic, newscast, and more
-- **SSML support:** Advanced markup with emotion and style control
-
-**Key Advantage:** Best overall TTS language coverage with advanced voice customization.
-
-**Unique Features:**
-
-- Voice tuning and custom neural voices
-- Real-time voice conversion
-- Emotion and speaking style control
-
----
-
-### **🔍 Language Gap Analysis for Current Implementation**
-
-#### **Deepgram TTS Limitations**
-
-```javascript
-// Languages with STT support but NO native TTS:
-const unsupportedTTSLanguages = [
-  "fr", // French → English voice fallback
-  "de", // German → English voice fallback
-  "pt", // Portuguese → English voice fallback
-  "it", // Italian → English voice fallback
-  "ja", // Japanese → English voice fallback
-  "hi", // Hindi → English voice fallback
-  "ru", // Russian → English voice fallback
-  "nl", // Dutch → English voice fallback
-  "zh", // Chinese → English voice fallback
-  "da", // Danish → English voice fallback
-  "sv", // Swedish → English voice fallback
-  "no", // Norwegian → English voice fallback
-  "pl", // Polish → English voice fallback
-  "ko", // Korean → English voice fallback
-  "fi", // Finnish → English voice fallback
-  "cs", // Czech → English voice fallback
-  "bg", // Bulgarian → English voice fallback
-  "ca", // Catalan → English voice fallback
-  "et", // Estonian → English voice fallback
-  "uk", // Ukrainian → English voice fallback
-  "tr", // Turkish → English voice fallback
-  "id", // Indonesian → English voice fallback
-  "ta", // Tamil → English voice fallback
-  "vi", // Vietnamese → English voice fallback
-];
-// All these languages use aura-2-asteria-en (English voice)
-```
-
-#### **Alternative Provider Coverage**
-
-If switching to alternative providers, native TTS would be available for:
-
-- **Google Cloud:** 20+ of the above languages with native voices
-- **AWS Polly:** 15+ of the above languages with native voices
-- **Microsoft Azure:** 25+ of the above languages with native voices
-
----
-
-### **💡 Implementation Recommendations**
-
-#### **Option 1: Hybrid Approach (Recommended)**
-
-Keep Deepgram for STT (fast, accurate) + Add secondary TTS provider for broader language support:
-
-```javascript
-// Example hybrid implementation
-const getTTSProvider = (language) => {
-  // Use Deepgram for languages with native support
-  if (["en", "es"].includes(language)) {
-    return {
-      provider: "deepgram",
-      voice: language === "en" ? "aura-2-asteria-en" : "aura-2-celeste-es",
-    };
-  }
-
-  // Use Google Cloud TTS for better language coverage
-  return {
-    provider: "google",
-    voice: getGoogleVoice(language), // Native voice for 40+ languages
-  };
-};
-
-// Benefits:
-// ✅ Keep fast Deepgram STT performance
-// ✅ Gain native voices for 20+ additional languages
-// ✅ Minimal architecture changes required
-// ✅ Best user experience for multilingual scenarios
-```
-
-#### **Option 2: Full Migration to Google Cloud**
-
-Complete migration for unified STT + TTS solution:
-
-**Advantages:**
-
-- Comprehensive STT + TTS coverage (100+ STT, 40+ TTS)
-- Excellent voice quality with Chirp 3 HD models
-- Consistent API and billing
-- Advanced features like voice styles and emotions
-
-**Implementation Considerations:**
-
-- Higher latency compared to Deepgram STT
-- Different API integration requirements
-- Potentially higher costs for high-volume usage
-
-#### **Option 3: Full Migration to Microsoft Azure**
-
-Best option for maximum TTS language coverage:
-
-**Advantages:**
-
-- Best TTS language coverage (75+ languages)
-- Neural voices with multiple speaking styles
-- Advanced customization options
-- Strong enterprise features
-
-**Implementation Considerations:**
-
-- Most complex pricing structure
-- Learning curve for new API integration
-- Potentially overkill for current requirements
-
-#### **Option 4: Status Quo (Current Implementation)**
-
-Continue with Deepgram-only approach:
-
-**Pros:**
-
-- ✅ Simple, proven architecture
-- ✅ Fast STT performance (1500ms average)
-- ✅ Cost-effective for current scale
-- ✅ Working production system
-
-**Cons:**
-
-- ❌ Poor user experience for non-EN/ES languages
-- ❌ French users hear English-accented French text
-- ❌ Hindi users hear English-accented Hindi text
-- ❌ Limited scalability for global markets
-- ❌ Competitive disadvantage vs. native voice solutions
-
----
-
-### **🎯 Technical Implementation Examples**
-
-#### **Hybrid TTS Implementation**
-
-```javascript
-// Enhanced voice model selection with multiple providers
-const getVoiceModel = async (language, text) => {
-  const providers = {
-    // Deepgram - optimized for English/Spanish
-    deepgram: {
-      en: "aura-2-asteria-en",
-      es: "aura-2-celeste-es",
-    },
-
-    // Google Cloud - broader language support
-    google: {
-      fr: "fr-FR-Chirp3-HD-Achernar", // French female
-      de: "de-DE-Chirp3-HD-Achernar", // German female
-      ja: "ja-JP-Chirp3-HD-Achernar", // Japanese female
-      hi: "hi-IN-Chirp3-HD-Achernar", // Hindi female
-      zh: "cmn-CN-Chirp3-HD-Achernar", // Chinese female
-      // ... 35+ more native voices
-    },
-  };
-
-  // Use Deepgram for supported languages
-  if (providers.deepgram[language]) {
-    return {
-      provider: "deepgram",
-      model: providers.deepgram[language],
-      endpoint: "deepgram_tts_endpoint",
-    };
-  }
-
-  // Use Google for everything else
-  if (providers.google[language]) {
-    return {
-      provider: "google",
-      model: providers.google[language],
-      endpoint: "google_tts_endpoint",
-    };
-  }
-
-  // Fallback to English
-  return {
-    provider: "deepgram",
-    model: "aura-2-asteria-en",
-    endpoint: "deepgram_tts_endpoint",
-  };
-};
-```
-
-#### **Provider-Agnostic TTS Function**
-
-```javascript
-const generateTTS = async (text, language) => {
-  const voiceConfig = await getVoiceModel(language, text);
-
-  switch (voiceConfig.provider) {
-    case "deepgram":
-      return await generateDeepgramTTS(text, voiceConfig.model);
-
-    case "google":
-      return await generateGoogleTTS(text, voiceConfig.model);
-
-    case "azure":
-      return await generateAzureTTS(text, voiceConfig.model);
-
-    default:
-      throw new Error(`Unsupported TTS provider: ${voiceConfig.provider}`);
-  }
-};
-```
-
----
-
-### **📊 Cost Comparison Analysis**
-
-| Provider            | STT Cost (per hour) | TTS Cost (per 1M chars) | Total for 1000 hours |
-| ------------------- | ------------------- | ----------------------- | -------------------- |
-| **Deepgram**        | $0.0043             | $0.0195                 | ~$24.95              |
-| **Google Cloud**    | $0.0048             | $0.016                  | ~$21.60              |
-| **AWS**             | $0.0048             | $0.016                  | ~$21.60              |
-| **Microsoft Azure** | $0.0048             | $0.015                  | ~$20.55              |
-
-_Note: Costs are approximate and vary by region, volume discounts, and specific features used._
-
----
-
-### **🚀 Migration Path Recommendations**
-
-#### **Phase 1: Hybrid Implementation (Immediate)**
-
-1. **Keep existing Deepgram STT** (proven, fast performance)
-2. **Add Google Cloud TTS** for non-EN/ES languages
-3. **Implement provider selection logic** based on language
-4. **Test with key language pairs** (French↔English, Chinese↔English)
-
-#### **Phase 2: Enhanced Language Support (Medium-term)**
-
-1. **Expand to 40+ TTS languages** using Google Chirp 3 HD
-2. **Add voice style selection** for enhanced user experience
-3. **Implement caching** for frequently translated content
-4. **Add usage analytics** to optimize provider selection
-
-#### **Phase 3: Full Enterprise Solution (Long-term)**
-
-1. **Evaluate Azure migration** for maximum language coverage
-2. **Implement custom voice training** for brand consistency
-3. **Add advanced features** (emotion, speaking styles, SSML)
-4. **Scale globally** with regional provider optimization
-
----
-
-### **🎯 Current System Assessment**
-
-**Your French↔Hindi Translation Scenario:**
-
-- **Current Behavior:** Both users hear English-accented voices reading translated text
-- **User Experience Impact:** Significantly reduced comprehension and engagement
-- **Business Impact:** Competitive disadvantage vs. solutions with native voices
-
-**Recommended Next Steps:**
-
-1. **Implement hybrid approach** to gain native French and Hindi TTS voices
-2. **A/B test user satisfaction** comparing English fallback vs. native voices
-3. **Measure engagement metrics** (session duration, user retention)
-4. **Plan full migration** based on growth and user feedback
-
-**Expected Improvement with Native Voices:**
-
-- **User Comprehension:** +40-60% improvement with native accents
-- **User Engagement:** +25-35% longer session duration
-- **Market Competitiveness:** Alignment with enterprise-grade solutions
-- **Global Scalability:** Ready for international market expansion
-
----
-
-## 🔧 Troubleshooting
-
-### **✅ CORRECTED FLOW ANALYSIS**
-
-**Previous Analysis Error:** The agent initially provided an incorrect analysis identifying supposed critical failures in the system architecture, particularly around WebSocket replacement patterns and TTS delivery mechanisms.
-
-**Actual Working Implementation:** Testing confirms the system operates perfectly with an elegant WebSocket replacement pattern:
-
-#### **✅ Successful Test Results (September 4, 2025)**
-
-**Test Scenario:** French ↔ Spanish bidirectional translation
-
-- **User 1 (French):** "Bonjour, je t'aime" → **User 2 receives:** "Hola, te amo" (perfect translation)
-- **User 2 (Spanish):** "¿Dónde está ahora?" → **User 1 receives:** "Où est-il maintenant?" (perfect translation)
-
-**✅ Working Architecture Confirmed:**
-
-```text
-Web Client Connection → Audio Connector Replacement → Language-Aware STT → Translation → TTS → Audio Delivery
-```
-
-#### **🔄 WebSocket Replacement Pattern (Working)**
-
-The system uses an elegant WebSocket replacement pattern in `addUserToSession()`:
+The system uses an WebSocket replacement pattern in `addUserToSession()`:
 
 ```javascript
 // Line 693 in video-chat-server.js
@@ -1960,9 +1206,24 @@ addUserToSession(sessionId, userId, websocket.id, websocket);
 
 **Key Insight:** The `addUserToSession()` function replaces rather than duplicates entries for the same `userId`, enabling seamless transition from web client to Audio Connector connection while preserving language preferences.
 
-#### **🔐 Per-User Audio Connector Security & Isolation**
+#### **🔐 Per-User Audio Connector Creation & Authentication**
 
-**Critical Architecture:** Each user gets their own dedicated Audio Connector that only they can connect to:
+**Critical Architecture:** Each user creates their own dedicated Audio Connector, but receives translated audio through it:
+
+**Audio Flow Example:**
+
+```text
+User A (French) speaks "Bonjour"
+    ↓
+Audio Connector A captures → STT → Translation → TTS generates "Hello"
+    ↓
+Server sends "Hello" TTS audio TO User B's Audio Connector
+    ↓
+User B hears "Hello" through THEIR OWN Audio Connector
+(User A hears nothing - no feedback)
+```
+
+**Connection Security:** Users can only CREATE/CONNECT to their own Audio Connector:
 
 **1. User-Specific Audio Connector Creation:**
 
@@ -1970,9 +1231,9 @@ addUserToSession(sessionId, userId, websocket.id, websocket);
 // Each user gets a unique Audio Connector URL with their userId
 GET /:sessionId/audioconnect/:userId
 
-// Example: Only User A can connect to their specific Audio Connector
-// User A (userId: abc123): /session1/audioconnect/abc123 ✅ ALLOWED
-// User B (userId: xyz789): /session1/audioconnect/abc123 ❌ BLOCKED
+// Example: Only User A can CREATE their specific Audio Connector
+// User A (userId: abc123): /session1/audioconnect/abc123 ✅ ALLOWED to create
+// User B (userId: xyz789): /session1/audioconnect/abc123 ❌ BLOCKED from creating User A's
 ```
 
 **2. Token-Based Authentication:**
@@ -1987,7 +1248,7 @@ token = videoClient.generateClientToken(sessionId, {
   }),
 });
 
-// Only the matching userId can use this token
+// Only the matching userId can use this token to CREATE their Audio Connector
 ```
 
 **3. WebSocket URL Isolation:**
@@ -1997,7 +1258,7 @@ token = videoClient.generateClientToken(sessionId, {
 wss://domain.com/?userId=abc123-def456-789
 
 // Server validates: incoming userId must match token userId
-// Prevents cross-user Audio Connector hijacking
+// Prevents unauthorized Audio Connector creation
 ```
 
 **4. Session Tracking Validation:**
@@ -2006,31 +1267,21 @@ wss://domain.com/?userId=abc123-def456-789
 // Server validates each Audio Connector connection
 const userInfo = sessionUsers.get(sessionId)?.get(userId);
 if (!userInfo) {
-  // Reject unauthorized Audio Connector attempts
+  // Reject unauthorized Audio Connector creation attempts
   websocket.close(1008, "Unauthorized userId for this session");
 }
 ```
 
-**Why This Prevents Cross-User Connection:**
+**Why This Prevents Unauthorized Audio Connector Creation:**
 
-- ✅ **URL Security:** Each Audio Connector URL is user-specific
-- ✅ **Token Validation:** Vonage tokens embed the authorized userId
+- ✅ **URL Security:** Each Audio Connector creation URL is user-specific
+- ✅ **Token Validation:** Vonage tokens embed the authorized userId for creation
 - ✅ **Server Verification:** Backend validates userId matches session records
-- ✅ **Automatic Isolation:** Users physically cannot connect to others' Audio Connectors
+- ✅ **Creation Isolation:** Users can only CREATE their own Audio Connector
 
-**Result:** User A's browser can only connect to User A's Audio Connector, never User B's.
+**Key Point:** Users can only CREATE their own Audio Connector, but they RECEIVE translated audio through their own Audio Connector from other users' speech.
 
-#### **✅ Complete Pipeline Flow (Verified Working)**
-
-1. **Web Client Setup:** User connects via browser, sets language preference (e.g., French)
-2. **Audio Connector Init:** `addUserToSession()` replaces web client WebSocket with Audio Connector WebSocket
-3. **Language Preservation:** User's language preference ("fr") is preserved during WebSocket replacement
-4. **STT Processing:** Deepgram receives audio with language-optimized configuration (`fr`)
-5. **Translation:** Google Translate uses source language hints for accuracy
-6. **TTS Generation:** Deepgram TTS generates audio (Spanish native voice or English fallback)
-7. **Audio Delivery:** TTS audio sent to target user's Audio Connector (NOT back to speaker)
-
-#### **🎯 Feedback Prevention (Working)**
+#### **Feedback Prevention (Working)**
 
 **The Challenge:** Without proper isolation, users would hear their own voice translated back to them, creating audio feedback loops.
 
@@ -2108,12 +1359,12 @@ User B hears: "Hello" (successful translation)
 
 **Why This Works:**
 
-- ✅ **Server Logic:** TTS only routed to different userIds
-- ✅ **Client Logic:** Users never subscribe to their own Audio Connector streams
-- ✅ **Stream Identification:** User tokens enable "self vs other" detection
-- ✅ **Isolation:** Each user only hears translations FROM other users, never their own
+- **Server Logic:** TTS only routed to different userIds
+- **Client Logic:** Users never subscribe to their own Audio Connector streams
+- **Stream Identification:** User tokens enable "self vs other" detection
+- **Isolation:** Each user only hears translations FROM other users, never their own
 
-#### **📊 Log Evidence of Success**
+#### **Log Evidence of Success**
 
 ```log
 [2025-09-04T22:03:24.978Z] ✅ Found other user for translation {
@@ -2133,20 +1384,7 @@ User B hears: "Hello" (successful translation)
 }
 ```
 
-#### **🚀 System Status: PRODUCTION READY**
-
-- ✅ **Bidirectional Translation:** French ↔ Spanish working perfectly
-- ✅ **WebSocket Management:** Elegant replacement pattern preserves language preferences
-- ✅ **Audio Delivery:** 52.5KB to 120KB TTS audio successfully transmitted
-- ✅ **Feedback Prevention:** Both server-side and client-side protection working
-- ✅ **Language Processing:** Language-aware STT with Google Translate integration
-- ✅ **Session Management:** Proper user tracking and cleanup
-
-**Conclusion:** The system architecture is correctly implemented and functions as designed. The previous analysis incorrectly identified working features as failures.
-
----
-
-### **Audio Feedback Loop Issues**
+### **Audio Feedback Loop Issues during development (SOLVED)**
 
 **Problem:** User speaks French, translation is generated correctly, but then user hears mixed-language transcripts like "Marcy you est, the autos" and duplicate translations.
 
@@ -2204,45 +1442,3 @@ if (isOwnAudioConnector) {
   return; // Don't subscribe to own Audio Connector
 }
 ```
-
-**Testing After Fixes:**
-
-1. Restart server: `node update-env.js`
-2. **Check log file:** Server now saves all logs to `server-logs-YYYY-MM-DD.log`
-3. Test French ↔ Spanish translation with two users
-4. Check browser console: Should see "Skipping subscription to own Audio Connector - prevents feedback loop"
-5. Verify: User 1 speaks French → User 2 hears Spanish translation → No feedback loops
-6. Check server logs: Should see "Audio feedback prevention: NOT sent back to speaker"
-
-**Log File Analysis:**
-
-- All server activity is now saved to daily log files
-- Use `tail -f server-logs-*.log` to monitor live
-- Search logs: `grep "feedback" server-logs-*.log`
-- Filter pipeline steps: `grep "PIPELINE" server-logs-*.log`
-
-**Prevention Tips:**
-
-- Each user's token now includes their userId for stream identification
-- Client-side logic automatically prevents subscribing to own Audio Connector streams
-- Server-side logic prevents sending TTS back to original speaker
-- Monitor both browser console and server logs for proper feedback prevention
-- Use log files to analyze translation patterns and debug issues
-
-### **Translation Not Working - log.debug Error**
-
-**Problem:** All translations fail with error: `log.debug is not a function`
-
-**Root Cause:** Custom logging utility only supports specific methods: `info`, `success`, `warning`, `error`, `pipeline`, `audio` (but NOT `debug`)
-
-**Fix:** Replace any `log.debug()` calls with `log.info()`:
-
-```javascript
-// Before (causes crash):
-log.debug("Translation result", result);
-
-// After (works correctly):
-log.info("Translation result", result);
-```
-
-**Verification:** Check that translations complete successfully and TTS audio is generated.
