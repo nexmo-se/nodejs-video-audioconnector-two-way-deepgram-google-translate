@@ -708,21 +708,50 @@ wsServer.on("connection", (websocket, request) => {
       const userLanguage = userInfo?.language;
 
       // Map user language preferences to Deepgram language codes
+      // Based on nova-2 model support: https://developers.deepgram.com/docs/models-languages-overview
       const deepgramLanguageMap = {
-        fr: "fr", // French
+        // === TIER 1: MOST COMMON LANGUAGES ===
+        en: "en-US", // English (US)
         es: "es", // Spanish
-        en: "en-US", // English
+        fr: "fr", // French
         de: "de", // German
         it: "it", // Italian
-        pt: "pt-BR", // Portuguese
+        pt: "pt-BR", // Portuguese (Brazilian)
         ja: "ja", // Japanese
         ko: "ko", // Korean
-        zh: "zh-CN", // Chinese
+        zh: "zh-CN", // Chinese (Mandarin, Simplified)
         ru: "ru", // Russian
-        ar: "ar", // Arabic
         hi: "hi", // Hindi
-        th: "th", // Thai
+        nl: "nl", // Dutch
+
+        // === TIER 2: EUROPEAN LANGUAGES ===
+        da: "da", // Danish
+        sv: "sv", // Swedish
+        no: "no", // Norwegian
+        pl: "pl", // Polish
+        fi: "fi", // Finnish
+        cs: "cs", // Czech
+        bg: "bg", // Bulgarian
+        ca: "ca", // Catalan
+        et: "et", // Estonian
+        uk: "uk", // Ukrainian
         tr: "tr", // Turkish
+
+        // === TIER 3: ADDITIONAL SUPPORTED LANGUAGES ===
+        ta: "ta", // Tamil
+
+        // === LANGUAGE VARIANTS (for completeness) ===
+        "zh-TW": "zh-TW", // Chinese (Traditional)
+        "zh-HK": "zh-HK", // Chinese (Cantonese, Traditional)
+        "pt-PT": "pt-PT", // Portuguese (European)
+        "es-419": "es-419", // Spanish (Latin America)
+        "en-GB": "en-GB", // English (British)
+        "en-AU": "en-AU", // English (Australian)
+        "en-IN": "en-IN", // English (Indian)
+        "en-NZ": "en-NZ", // English (New Zealand)
+        "nl-BE": "nl-BE", // Flemish (Belgian Dutch)
+        "da-DK": "da-DK", // Danish (Denmark)
+        "sv-SE": "sv-SE", // Swedish (Sweden)
       };
 
       // Choose language setting based on user preference
@@ -735,7 +764,7 @@ wsServer.on("connection", (websocket, request) => {
         dgConnection = deepgram.listen.live({
           // === BASIC REQUIRED SETTINGS ===
           language: deepgramLanguage, // Use user's preferred language or multi-language detection
-          model: "nova-2", // Use stable Nova 2 model for best accuracy
+          model: "nova-2", // High-quality model for diverse languages
           encoding: "linear16", // PCM audio format
           sample_rate: 16000, // 16kHz sample rate
           channels: 1, // Mono audio
@@ -1077,22 +1106,24 @@ wsServer.on("connection", (websocket, request) => {
                       // Spanish voices (Aura-2 available)
                       es: "aura-2-celeste-es", // Spanish - Clear, energetic Colombian female voice
 
-                      // All other languages fall back to English voice
-                      // (TTS only supports EN/ES, but STT supports many more languages)
+                      // === TIER 1: MOST COMMON LANGUAGES ===
+                      // All fall back to English voice (TTS only supports EN/ES, but STT supports many more)
                       fr: "aura-2-asteria-en", // French → English voice
                       de: "aura-2-asteria-en", // German → English voice
-                      pt: "aura-2-asteria-en", // Portuguese → English voice
                       it: "aura-2-asteria-en", // Italian → English voice
+                      pt: "aura-2-asteria-en", // Portuguese → English voice
                       ja: "aura-2-asteria-en", // Japanese → English voice
-                      hi: "aura-2-asteria-en", // Hindi → English voice
+                      ko: "aura-2-asteria-en", // Korean → English voice
+                      zh: "aura-2-asteria-en", // Chinese (Mandarin) → English voice
                       ru: "aura-2-asteria-en", // Russian → English voice
+                      hi: "aura-2-asteria-en", // Hindi → English voice
                       nl: "aura-2-asteria-en", // Dutch → English voice
-                      zh: "aura-2-asteria-en", // Chinese → English voice
+
+                      // === TIER 2: EUROPEAN LANGUAGES ===
                       da: "aura-2-asteria-en", // Danish → English voice
                       sv: "aura-2-asteria-en", // Swedish → English voice
                       no: "aura-2-asteria-en", // Norwegian → English voice
                       pl: "aura-2-asteria-en", // Polish → English voice
-                      ko: "aura-2-asteria-en", // Korean → English voice
                       fi: "aura-2-asteria-en", // Finnish → English voice
                       cs: "aura-2-asteria-en", // Czech → English voice
                       bg: "aura-2-asteria-en", // Bulgarian → English voice
@@ -1100,7 +1131,8 @@ wsServer.on("connection", (websocket, request) => {
                       et: "aura-2-asteria-en", // Estonian → English voice
                       uk: "aura-2-asteria-en", // Ukrainian → English voice
                       tr: "aura-2-asteria-en", // Turkish → English voice
-                      id: "aura-2-asteria-en", // Indonesian → English voice
+
+                      // === TIER 3: ADDITIONAL SUPPORTED LANGUAGES ===
                       ta: "aura-2-asteria-en", // Tamil → English voice
                     };
                     return voiceMap[language] || "aura-2-asteria-en"; // Default to English
