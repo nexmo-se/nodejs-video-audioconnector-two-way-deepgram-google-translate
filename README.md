@@ -23,41 +23,38 @@ Vonage Video Application with real-time speech translation powered by Vonage Vid
 
 ### **Getting Started**
 
-- [Features](#-features)
-- [Architecture Overview](#️-architecture-overview)
-- [Prerequisites](#-prerequisites)
-- [Quick Start](#-quick-start)
-- [How to Use](#-how-to-use)
+- [Features](#features)
+- [Architecture Overview](#architecture-overview)
+- [Prerequisites](#prerequisites)
+- [Quick Start](#quick-start)
+- [Run a Demo](#run-a-demo)
 
 ### **Language & Translation**
 
-- [Supported Languages](#-supported-languages)
-- [Language-Aware STT Configuration](#-language-aware-stt-configuration)
-- [STT/TTS Provider Comparison Analysis](#-stttts-provider-comparison-analysis)
+- [Supported Languages](#supported-languages)
+- [Language-Aware STT Configuration](#language-aware-stt-configuration)
 
 ### **Technical Documentation**
 
-- [Complete Frontend/Backend Flow Documentation](#-complete-frontendbackend-flow-documentation)
-- [System Requirements & Testing](#-system-requirements--testing)
-- [API Endpoints](#-api-endpoints)
-- [Logging & Monitoring](#-logging--monitoring)
+- [Complete Frontend/Backend Flow Documentation](#complete-frontendbackend-flow-documentation)
+- [ConnectionId Flow & Audio Connector Subscription Logic](#connectionid-flow--audio-connector-subscription-logic)
+- [System Requirements & Testing](#system-requirements--testing)
+- [API Endpoints](#api-endpoints)
+- [Logging & Monitoring](#logging--monitoring)
 
 ### **Development & Architecture**
 
-- [Development](#️-development)
-- [Audio Connector UI Management](#️-audio-connector-ui-management)
-- [Long Sentence Detection & Utterance Optimization](#️-long-sentence-detection--utterance-optimization)
+- [Development](#️development)
+- [Audio Connector UI Management](#audio-connector-ui-management)
+- [Long Sentence Detection & Utterance Optimization](#long-sentence-detection--utterance-optimization)
 
 ### **Production & Maintenance**
 
-- [Readiness Summary](#-readiness-summary)
-- [Performance Notes](#-performance-notes)
-- [Troubleshooting](#-troubleshooting)
-- [Refactoring Changelog](#-refactoring-changelog)
+- [Refactoring Changelog](#refactoring-improvements)
 
 ### **Resources**
 
-- [Related Documentation](#-related-documentation)
+- [Related Documentation](#related-documentation)
 
 ---
 
@@ -111,10 +108,21 @@ This is a **Deepgram limitation**, not a system bug. Text translation is perfect
 
 ### **Enhanced Language Support (25+ Languages)**
 
-**STT (Speech-to-Text) Supported:**
+**STT (Speech-to-Text) Supported (Nova-2 Model):**
 
-- **Nova-3 Languages (10)**: English, Spanish, French, German, Hindi, Russian, Portuguese, Japanese, Italian, Dutch
-- **Nova-2 Additional Languages (15+)**: Chinese (Mandarin), Danish, Swedish, Norwegian, Polish, Korean, Finnish, Czech, Bulgarian, Catalan, Estonian, Ukrainian, Turkish, Indonesian, Tamil
+### **Tier 1 - Most Common Languages (12):**
+
+English, Spanish, French, German, Italian, Portuguese, Japanese, Korean, Chinese (Mandarin), Russian, Hindi, Dutch
+
+### **Tier 2 - European Languages (11):**
+
+Danish, Swedish, Norwegian, Polish, Finnish, Czech, Bulgarian, Catalan, Estonian, Ukrainian, Turkish
+
+### **Tier 3 - Additional Supported Languages (1):**
+
+Tamil
+
+**Total: 24 Languages Supported** ✅
 
 **TTS (Text-to-Speech) Available:**
 
@@ -124,8 +132,9 @@ This is a **Deepgram limitation**, not a system bug. Text translation is perfect
 **Translation Coverage:**
 
 - **Smart Translation**: Uses speaker's language preference as source hint for improved accuracy
-- **Optimized STT Languages**: French (`fr`), Spanish (`es`), English (`en-US`), German (`de`), Italian (`it`), Portuguese (`pt-BR`), Japanese (`ja`), Korean (`ko`), Chinese (`zh-CN`), Russian (`ru`), Arabic (`ar`), Hindi (`hi`), Thai (`th`), Turkish (`tr`)
-- **Multi-Language Fallback**: Unknown languages use multi-language detection with auto-translation
+- **Nova-2 STT Languages**: All 24 supported languages get optimized STT processing with language-specific configuration
+- **Multi-Language Fallback**: Unknown/unselected languages use multi-language detection with auto-translation
+- **Language Codes**: `en`, `es`, `fr`, `de`, `it`, `pt`, `ja`, `ko`, `zh`, `ru`, `hi`, `nl`, `da`, `sv`, `no`, `pl`, `fi`, `cs`, `bg`, `ca`, `et`, `uk`, `tr`, `ta`
 
 ### **📊 Complete Language Support Matrix**
 
@@ -327,7 +336,7 @@ node video-chat-server.js
 
 ### **Language Pipeline Examples**
 
-### **⚠️ Important: Translation Logic**
+### **Important: Translation Logic**
 
 - **Single User**: No translation occurs (only transcription)
 - **Same Language Users**: No translation occurs (transcription only)
@@ -341,7 +350,7 @@ node video-chat-server.js
 - Session tracking uses Vonage connectionId for reliable user identification
 - Automatic cleanup when users disconnect
 
-## **🔄 Complete Frontend/Backend Flow Documentation**
+## **Complete Frontend/Backend Flow Documentation**
 
 ### **Overview: Complete User Journey**
 
@@ -829,7 +838,275 @@ if (sessionUsers.get(sessionId).size === 0) {
 
 This complete flow documentation provides the foundation for implementing the same architecture in any frontend framework while maintaining the same backend API structure.
 
-## **🔧 System Requirements & Testing**
+## **ConnectionId Flow & Audio Connector Subscription Logic**
+
+### **Overview: ConnectionId as User Identity**
+
+The system uses **Vonage connectionId** as the primary user identifier throughout the entire pipeline. This connectionId uniquely identifies each user's session connection and serves as the bridge between web clients and Audio Connectors.
+
+### **🔄 Complete ConnectionId Pipeline Flow**
+
+#### **1. Web Client Connection & ConnectionId Generation**
+
+**File:** `views/js/client.js` (lines 50-60)
+
+```javascript
+// User opens browser and connects to video session
+session = OT.initSession(apiKey, sessionId);
+session.connect(token, async function (err) {
+  if (!err) {
+    // Store connectionId globally for Audio Connector creation
+    window.currentSession = session;
+    console.log("Connection ID:", session.connection.connectionId);
+
+    // This connectionId becomes the user's unique identifier
+    const userId = session.connection.connectionId;
+  }
+});
+```
+
+**Result:** User has unique `connectionId` (e.g., `"2_MX4xMDB..."`)
+
+#### **2. Audio Connector Creation with ConnectionId**
+
+**File:** `views/index.ejs` (lines 325-335)
+
+```javascript
+// When user clicks "Start Deepgram", use connectionId as userId
+const userId = window.currentSession?.connection?.connectionId;
+
+// Call per-user Audio Connector endpoint with connectionId
+$.ajax({
+  method: "GET",
+  url: "/<%=sessionId%>/audioconnect/" + userId, // connectionId becomes userId
+});
+```
+
+**File:** `video-chat-server.js` (lines 345-400)
+
+```javascript
+// Per-user Audio Connector endpoint
+app.get("/:sessionId/audioconnect/:userId", async function (req, res) {
+  const sessionId = req.params["sessionId"];
+  const userId = req.params["userId"]; // This is the connectionId from frontend
+
+  // Generate token with userId embedded in connection data
+  const tokenData = {
+    userId: userId, // connectionId for stream identification
+    type: "audio_connector",
+    role: "translator",
+    timestamp: Date.now(),
+  };
+
+  token = videoClient.generateClientToken(sessionId, {
+    data: JSON.stringify(tokenData), // Embed userId in token
+  });
+
+  // Create Audio Connector with userId in WebSocket URI
+  const result = await videoClient.connectToWebsocket(sessionId, token, {
+    uri: `${websocket_server_uri}?userId=${userId}`, // Pass connectionId
+    headers: { sessionid: sessionId, userid: userId },
+    bidirectional: true,
+  });
+});
+```
+
+**Result:** Audio Connector created with connectionId embedded in token and URI
+
+#### **3. WebSocket Connection & User Tracking**
+
+**File:** `video-chat-server.js` (lines 615-630)
+
+```javascript
+// WebSocket connection handler
+wsServer.on("connection", (websocket, request) => {
+  // Extract userId (connectionId) from WebSocket URL
+  const url = new URL(request.url, `http://${request.headers.host}`);
+  const userIdFromUrl = url.searchParams.get("userId");
+
+  // Store connectionId as user identifier
+  websocket.userId = userIdFromUrl; // connectionId from frontend
+  websocket.isAudioConnector = !!userIdFromUrl;
+
+  // Track user in session
+  addUserToSession(sessionId, userId, websocket.id, websocket);
+});
+```
+
+**Result:** Server tracks users by connectionId in `sessionUsers` Map
+
+#### **4. Stream Creation & ConnectionId Embedding**
+
+When Audio Connector connects to video session, it creates a stream with the embedded token data:
+
+```javascript
+// Audio Connector stream includes connectionId in stream.connection.data
+stream.connection.data = JSON.stringify({
+  userId: "2_MX4xMDB...", // Original connectionId
+  type: "audio_connector",
+  role: "translator",
+});
+```
+
+#### **5. Client-Side Stream Subscription Logic**
+
+**File:** `views/js/client.js` (lines 90-200)
+
+```javascript
+session.on("streamCreated", function (event) {
+  const stream = event.stream;
+
+  // Extract userId (connectionId) from stream token data
+  let streamMeta = {};
+  if (stream.connection.data) {
+    streamMeta = JSON.parse(stream.connection.data);
+    // streamMeta.userId contains the original connectionId
+  }
+
+  // Determine if this is an Audio Connector stream
+  const isAudioConnector = streamMeta.type === "audio_connector";
+  const audioConnectorOwner = streamMeta.userId; // connectionId of Audio Connector owner
+  const currentUserId = session.connection.connectionId; // Current user's connectionId
+
+  // CRITICAL SUBSCRIPTION LOGIC: Only subscribe if ownership is different
+  const isOwnAudioConnector = audioConnectorOwner === currentUserId;
+
+  if (isAudioConnector) {
+    if (isOwnAudioConnector) {
+      console.log(
+        "✅ Subscribing to OWN Audio Connector for translated audio playback"
+      );
+      // Subscribe to receive translations FROM other users
+    } else {
+      console.log("✅ Subscribing to OTHER user's Audio Connector");
+      // Subscribe to receive translations TO other users
+    }
+
+    // Create hidden container and subscribe for audio-only
+    const hiddenContainer = document.createElement("div");
+    session.subscribe(stream, hiddenContainer, {
+      subscribeToVideo: false,
+      subscribeToAudio: true,
+    });
+  }
+});
+```
+
+#### **6. Audio Feedback Prevention**
+
+The connectionId system prevents audio feedback loops:
+
+```javascript
+// Server-side TTS delivery (video-chat-server.js lines 1200-1220)
+if (
+  user.websocket.readyState === user.websocket.OPEN &&
+  user.userId !== speakerUserId
+) {
+  // Don't send to speaker's own Audio Connector
+  await playback_to_websocket(user.websocket, stream);
+  console.log(
+    "TTS sent to user:",
+    user.userId,
+    "NOT to speaker:",
+    speakerUserId
+  );
+}
+```
+
+### **ConnectionId Security & Isolation**
+
+#### **Per-User Audio Connector Creation Security**
+
+```javascript
+// Only authorized users can create Audio Connectors
+const userInfo = sessionUsers.get(sessionId)?.get(userId);
+if (!userInfo) {
+  websocket.close(1008, "Unauthorized userId for this session");
+}
+```
+
+#### **Stream Ownership Verification**
+
+```javascript
+// Client verifies Audio Connector ownership before subscription
+const doubleCheck = audioConnectorOwner === currentUserId;
+if (!doubleCheck) {
+  console.log("❌ OWNERSHIP MISMATCH: Skipping subscription");
+  return;
+}
+```
+
+### **ConnectionId State Management**
+
+#### **Session User Tracking**
+
+```javascript
+// Global session state (video-chat-server.js)
+const sessionUsers = new Map(); // sessionId -> Map(userId -> userInfo)
+
+function addUserToSession(sessionId, userId, websocketId, websocketInstance) {
+  if (!sessionUsers.has(sessionId)) {
+    sessionUsers.set(sessionId, new Map());
+  }
+
+  sessionUsers.get(sessionId).set(userId, {
+    userId: userId, // connectionId
+    websocketId: websocketId,
+    websocket: websocketInstance,
+    language: null, // Set when user selects language
+    isActive: true,
+  });
+}
+```
+
+#### **Language Preference Association**
+
+```javascript
+// Language preferences tied to connectionId
+function setUserLanguage(sessionId, userId, language) {
+  const sessionMap = sessionUsers.get(sessionId);
+  if (sessionMap && sessionMap.has(userId)) {
+    sessionMap.get(userId).language = language; // Associate language with connectionId
+    return true;
+  }
+  return false;
+}
+```
+
+### **Key Benefits of ConnectionId Architecture**
+
+1. **Unique User Identity**: Each user identified by Vonage connectionId across all components
+2. **Stream Ownership**: Audio Connector streams traced back to original user via connectionId
+3. **Feedback Prevention**: TTS not sent back to speaker's connectionId
+4. **Session Isolation**: Users can only create Audio Connectors for their own connectionId
+5. **Language Tracking**: User language preferences associated with connectionId
+6. **Subscription Logic**: Client can distinguish own vs. other users' Audio Connectors
+
+### **📋 ConnectionId Debugging Guide**
+
+```javascript
+// Frontend debugging (views/js/client.js)
+console.log("Current user connectionId:", session.connection.connectionId);
+console.log(
+  "Stream owner connectionId:",
+  JSON.parse(stream.connection.data).userId
+);
+console.log("Is own Audio Connector?", streamOwner === currentUser);
+
+// Backend debugging (video-chat-server.js)
+console.log("WebSocket userId (connectionId):", websocket.userId);
+console.log("Session users:", Array.from(sessionUsers.get(sessionId).keys()));
+console.log(
+  "TTS target userId:",
+  user.userId,
+  "Speaker userId:",
+  speakerUserId
+);
+```
+
+This connectionId architecture ensures secure, isolated per-user translation processing while preventing audio feedback loops.
+
+## **System Requirements & Testing**
 
 ### **⚠️ Important: Same-Device Testing Limitation**
 
@@ -873,7 +1150,7 @@ This complete flow documentation provides the foundation for implementing the sa
 3. **✅ Logic Working**: No unnecessary translation/TTS generation
 4. **✅ Resource Efficiency**: System conserves resources when translation not needed
 
-### **🎯 Multi-User Testing (Required for Translation)**
+### **Multi-User Testing (Required for Translation)**
 
 To test the **full translation pipeline**, you need:
 
@@ -894,7 +1171,7 @@ To test the **full translation pipeline**, you need:
 ✅ Audio transmission completed: 129 chunks sent
 ```
 
-### **🧪 Testing Scenarios Summary**
+### **Testing Scenarios Summary**
 
 | Scenario                | Users | Languages         | Translation Expected | Audio Expected   |
 | ----------------------- | ----- | ----------------- | -------------------- | ---------------- |
@@ -914,7 +1191,7 @@ To test the **full translation pipeline**, you need:
 | `/:sessionId/streams`      | GET    | Get stream information        |
 | `/:sessionId/audioconnect` | GET    | Initialize Audio Connector    |
 
-## **📊 Logging & Monitoring**
+## **Logging & Monitoring**
 
 The application provides comprehensive logging with different categories:
 
@@ -947,7 +1224,7 @@ The application provides comprehensive logging with different categories:
 }
 ```
 
-## **🛠️ Development**
+## **Development**
 
 ### **Project Structure**
 
