@@ -1,119 +1,3 @@
-// Enhanced multi-user language tracking
-// sessionId -> { userId: { connectionId: websocketId, language: preferredLang, websocket: wsInstance } }
-const sessionUsers = new Map();
-
-/**
- * Helper function to add user to session tracking
- */
-function addUserToSession(sessionId, userId, websocketId, websocketInstance) {
-  if (!sessionUsers.has(sessionId)) {
-    sessionUsers.set(sessionId, new Map());
-  }
-
-  const sessionMap = sessionUsers.get(sessionId);
-
-  // Check if user already exists to preserve existing data (especially language preference)
-  if (sessionMap.has(userId)) {
-    const existingUser = sessionMap.get(userId);
-    // Update connection info but preserve language and other settings
-    existingUser.connectionId = websocketId;
-    existingUser.websocket = websocketInstance;
-    existingUser.isActive = true;
-    // Keep existing language preference!
-
-    log.info("User connection updated in session tracking", {
-      sessionId,
-      userId,
-      connectionId: websocketId,
-      preservedLanguage: existingUser.language,
-      totalUsers: sessionMap.size,
-    });
-  } else {
-    // New user - create fresh entry
-    sessionMap.set(userId, {
-      connectionId: websocketId,
-      language: null, // Will be set when user selects language
-      websocket: websocketInstance,
-      isActive: true,
-    });
-
-    log.info("User added to session tracking", {
-      sessionId,
-      userId,
-      connectionId: websocketId,
-      totalUsers: sessionMap.size,
-    });
-  }
-}
-
-/**
- * Helper function to set user language preference
- */
-function setUserLanguage(sessionId, userId, language) {
-  if (sessionUsers.has(sessionId) && sessionUsers.get(sessionId).has(userId)) {
-    sessionUsers.get(sessionId).get(userId).language = language;
-    log.info("User language preference set", {
-      sessionId,
-      userId,
-      language,
-    });
-    return true;
-  }
-  return false;
-}
-
-/**
- * Helper function to get all users in a session except the speaker
- */
-function getOtherUsersInSession(sessionId, speakerUserId) {
-  const users = [];
-  if (sessionUsers.has(sessionId)) {
-    const sessionMap = sessionUsers.get(sessionId);
-    log.info("🔍 DEBUG: Checking users in session", {
-      sessionId,
-      speakerUserId,
-      totalUsersInSession: sessionMap.size,
-      allUserIds: Array.from(sessionMap.keys()),
-    });
-
-    for (const [userId, userInfo] of sessionMap) {
-      log.info("🔍 DEBUG: Checking user", {
-        userId,
-        speakerUserId,
-        isActive: userInfo.isActive,
-        language: userInfo.language,
-        isDifferentUser: userId !== speakerUserId,
-      });
-
-      if (userId !== speakerUserId && userInfo.isActive && userInfo.language) {
-        users.push({
-          userId,
-          language: userInfo.language,
-          websocket: userInfo.websocket,
-          connectionId: userInfo.connectionId,
-        });
-        log.info("✅ Found other user for translation", {
-          userId,
-          language: userInfo.language,
-        });
-      }
-    }
-  } else {
-    log.warning("❌ Session not found in sessionUsers", { sessionId });
-  }
-
-  log.info("🔍 DEBUG: getOtherUsersInSession result", {
-    sessionId,
-    speakerUserId,
-    foundUsers: users.length,
-    userLanguages: users.map((u) => ({
-      userId: u.userId,
-      language: u.language,
-    })),
-  });
-
-  return users;
-}
 /**
  * Real-Time Video Chat with Multi-Language Translation
  *
@@ -243,6 +127,125 @@ const log = {
 
 log.info("🚀 Server starting up - logs saved to: " + logFileName);
 log.info("Deepgram SDK initialized", { version: deepgram.version });
+
+// ===== SESSION & USER MANAGEMENT =====
+
+// Enhanced multi-user language tracking
+// sessionId -> { userId: { connectionId: websocketId, language: preferredLang, websocket: wsInstance } }
+const sessionUsers = new Map();
+
+/**
+ * Helper function to add user to session tracking
+ */
+function addUserToSession(sessionId, userId, websocketId, websocketInstance) {
+  if (!sessionUsers.has(sessionId)) {
+    sessionUsers.set(sessionId, new Map());
+  }
+
+  const sessionMap = sessionUsers.get(sessionId);
+
+  // Check if user already exists to preserve existing data (especially language preference)
+  if (sessionMap.has(userId)) {
+    const existingUser = sessionMap.get(userId);
+    // Update connection info but preserve language and other settings
+    existingUser.connectionId = websocketId;
+    existingUser.websocket = websocketInstance;
+    existingUser.isActive = true;
+    // Keep existing language preference!
+
+    log.info("User connection updated in session tracking", {
+      sessionId,
+      userId,
+      connectionId: websocketId,
+      preservedLanguage: existingUser.language,
+      totalUsers: sessionMap.size,
+    });
+  } else {
+    // New user - create fresh entry
+    sessionMap.set(userId, {
+      connectionId: websocketId,
+      language: null, // Will be set when user selects language
+      websocket: websocketInstance,
+      isActive: true,
+    });
+
+    log.info("User added to session tracking", {
+      sessionId,
+      userId,
+      connectionId: websocketId,
+      totalUsers: sessionMap.size,
+    });
+  }
+}
+
+/**
+ * Helper function to set user language preference
+ */
+function setUserLanguage(sessionId, userId, language) {
+  if (sessionUsers.has(sessionId) && sessionUsers.get(sessionId).has(userId)) {
+    sessionUsers.get(sessionId).get(userId).language = language;
+    log.info("User language preference set", {
+      sessionId,
+      userId,
+      language,
+    });
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Helper function to get all users in a session except the speaker
+ */
+function getOtherUsersInSession(sessionId, speakerUserId) {
+  const users = [];
+  if (sessionUsers.has(sessionId)) {
+    const sessionMap = sessionUsers.get(sessionId);
+    log.info("🔍 DEBUG: Checking users in session", {
+      sessionId,
+      speakerUserId,
+      totalUsersInSession: sessionMap.size,
+      allUserIds: Array.from(sessionMap.keys()),
+    });
+
+    for (const [userId, userInfo] of sessionMap) {
+      log.info("🔍 DEBUG: Checking user", {
+        userId,
+        speakerUserId,
+        isActive: userInfo.isActive,
+        language: userInfo.language,
+        isDifferentUser: userId !== speakerUserId,
+      });
+
+      if (userId !== speakerUserId && userInfo.isActive && userInfo.language) {
+        users.push({
+          userId,
+          language: userInfo.language,
+          websocket: userInfo.websocket,
+          connectionId: userInfo.connectionId,
+        });
+        log.info("✅ Found other user for translation", {
+          userId,
+          language: userInfo.language,
+        });
+      }
+    }
+  } else {
+    log.warning("❌ Session not found in sessionUsers", { sessionId });
+  }
+
+  log.info("🔍 DEBUG: getOtherUsersInSession result", {
+    sessionId,
+    speakerUserId,
+    foundUsers: users.length,
+    userLanguages: users.map((u) => ({
+      userId: u.userId,
+      language: u.language,
+    })),
+  });
+
+  return users;
+}
 
 // Application configuration from environment variables
 const appId = process.env.APP_ID; // Vonage Application ID
