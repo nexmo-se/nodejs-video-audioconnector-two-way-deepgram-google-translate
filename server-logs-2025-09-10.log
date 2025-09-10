@@ -1,0 +1,1075 @@
+[2025-09-10T18:50:53.980Z] ℹ️  🚀 Server starting up - logs saved to: server-logs-2025-09-10.log 
+[2025-09-10T18:50:53.982Z] ℹ️  Deepgram SDK initialized {
+  "version": "v1"
+}
+[2025-09-10T18:50:53.984Z] ℹ️  WebSocket server initialized and ready for connections 
+[2025-09-10T18:50:53.985Z] ✅ Server started successfully {
+  "port": "3002",
+  "environment": "development",
+  "websocketUri": "wss://2d4914cf2967.ngrok.app"
+}
+[2025-09-10T18:50:58.913Z] ✅ New video session created {
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "mediaMode": "routed"
+}
+[2025-09-10T18:51:09.716Z] ℹ️  WebSocket upgrade request received {
+  "url": "/",
+  "headers": {
+    "host": "2d4914cf2967.ngrok.app",
+    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+    "accept-encoding": "gzip, deflate, br",
+    "accept-language": "en-US,en;q=0.9",
+    "cache-control": "no-cache",
+    "connection": "Upgrade",
+    "origin": "https://2d4914cf2967.ngrok.app",
+    "pragma": "no-cache",
+    "sec-websocket-extensions": "permessage-deflate; client_max_window_bits",
+    "sec-websocket-key": "5+agRpNiXEDhvTeagxyMXA==",
+    "sec-websocket-version": "13",
+    "upgrade": "websocket",
+    "x-forwarded-for": "73.26.43.147, 163.116.147.141",
+    "x-forwarded-host": "2d4914cf2967.ngrok.app",
+    "x-forwarded-proto": "https"
+  }
+}
+[2025-09-10T18:51:09.718Z] ℹ️  New WebSocket connection established {
+  "connectionId": "adf31015-dd1f",
+  "userId": null,
+  "connectionType": "Web Client"
+}
+[2025-09-10T18:51:09.837Z] ℹ️  User added to session tracking {
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "userId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "connectionId": "client_1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "totalUsers": 1
+}
+[2025-09-10T18:51:09.838Z] ℹ️  Client identified and added to session tracking {
+  "clientId": "client_1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "userId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "connectionType": "Web Client"
+}
+[2025-09-10T18:51:15.872Z] ℹ️  User language preference set {
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "userId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "language": "fr"
+}
+[2025-09-10T18:51:15.874Z] ℹ️  Language preference set for user {
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "userId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "language": "fr",
+  "connectionId": "client_1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-"
+}
+[2025-09-10T18:51:15.875Z] ℹ️  🔍 DEBUG: Checking users in session {
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "speakerUserId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "totalUsersInSession": 1,
+  "allUserIds": [
+    "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73"
+  ]
+}
+[2025-09-10T18:51:15.876Z] ℹ️  🔍 DEBUG: Checking user {
+  "userId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "speakerUserId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "isActive": true,
+  "language": "fr",
+  "isDifferentUser": false
+}
+[2025-09-10T18:51:15.877Z] ℹ️  🔍 DEBUG: getOtherUsersInSession result {
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "speakerUserId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "foundUsers": 0,
+  "userLanguages": []
+}
+[2025-09-10T18:52:04.411Z] ℹ️  WebSocket upgrade request received {
+  "url": "/",
+  "headers": {
+    "host": "2d4914cf2967.ngrok.app",
+    "user-agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1",
+    "accept": "*/*",
+    "accept-encoding": "gzip, deflate, br",
+    "accept-language": "en-US,en;q=0.9",
+    "cache-control": "no-cache",
+    "connection": "Upgrade",
+    "origin": "https://2d4914cf2967.ngrok.app",
+    "pragma": "no-cache",
+    "priority": "u=3, i",
+    "sec-fetch-dest": "websocket",
+    "sec-fetch-mode": "websocket",
+    "sec-fetch-site": "same-origin",
+    "sec-websocket-extensions": "permessage-deflate",
+    "sec-websocket-key": "Vozskc72lkPg983+WivtNg==",
+    "sec-websocket-version": "13",
+    "upgrade": "websocket",
+    "x-forwarded-for": "2601:8c1:8303:eb40:a184:f962:44da:2b89",
+    "x-forwarded-host": "2d4914cf2967.ngrok.app",
+    "x-forwarded-proto": "https"
+  }
+}
+[2025-09-10T18:52:04.413Z] ℹ️  New WebSocket connection established {
+  "connectionId": "640fcafb-a13d",
+  "userId": null,
+  "connectionType": "Web Client"
+}
+[2025-09-10T18:52:04.523Z] ℹ️  User added to session tracking {
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "userId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "connectionId": "client_1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "totalUsers": 2
+}
+[2025-09-10T18:52:04.524Z] ℹ️  Client identified and added to session tracking {
+  "clientId": "client_1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "userId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "connectionType": "Web Client"
+}
+[2025-09-10T18:52:08.580Z] ℹ️  User language preference set {
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "userId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "language": "es"
+}
+[2025-09-10T18:52:08.584Z] ℹ️  Language preference set for user {
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "userId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "language": "es",
+  "connectionId": "client_1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-"
+}
+[2025-09-10T18:52:08.585Z] ℹ️  🔍 DEBUG: Checking users in session {
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "speakerUserId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "totalUsersInSession": 2,
+  "allUserIds": [
+    "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+    "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3"
+  ]
+}
+[2025-09-10T18:52:08.586Z] ℹ️  🔍 DEBUG: Checking user {
+  "userId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "speakerUserId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "isActive": true,
+  "language": "fr",
+  "isDifferentUser": true
+}
+[2025-09-10T18:52:08.586Z] ℹ️  ✅ Found other user for translation {
+  "userId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "language": "fr"
+}
+[2025-09-10T18:52:08.586Z] ℹ️  🔍 DEBUG: Checking user {
+  "userId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "speakerUserId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "isActive": true,
+  "language": "es",
+  "isDifferentUser": false
+}
+[2025-09-10T18:52:08.587Z] ℹ️  🔍 DEBUG: getOtherUsersInSession result {
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "speakerUserId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "foundUsers": 1,
+  "userLanguages": [
+    {
+      "userId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+      "language": "fr"
+    }
+  ]
+}
+[2025-09-10T18:52:15.540Z] ℹ️  Per-user Audio Connector connection request {
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "userId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3"
+}
+[2025-09-10T18:52:15.541Z] ℹ️  Generating Audio Connector token with data: {
+  "userId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "type": "audio_connector",
+  "role": "translator",
+  "timestamp": 1757530335541
+}
+[2025-09-10T18:52:16.198Z] ℹ️  WebSocket upgrade request received {
+  "url": "/?userId=dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "headers": {
+    "host": "2d4914cf2967.ngrok.app",
+    "user-agent": "WSBridgeV2",
+    "connection": "Upgrade",
+    "origin": "wss://2d4914cf2967.ngrok.app",
+    "sec-websocket-key": "PnsZxBs0QSLZxuVOsv1vHw==",
+    "sec-websocket-protocol": "WSBRIDGE",
+    "sec-websocket-version": "13",
+    "upgrade": "websocket",
+    "x-forwarded-for": "35.94.34.212",
+    "x-forwarded-host": "2d4914cf2967.ngrok.app",
+    "x-forwarded-proto": "https",
+    "accept-encoding": "gzip"
+  }
+}
+[2025-09-10T18:52:16.203Z] ℹ️  New WebSocket connection established {
+  "connectionId": "54a739fa-341b",
+  "userId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "connectionType": "Per-User Audio Connector"
+}
+[2025-09-10T18:52:16.276Z] ✅ Per-user Audio Connector connected {
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "userId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "connectionId": "44107804-8587-4295-9129-fb90ca99a284",
+  "audioRate": "16kHz",
+  "bidirectional": true
+}
+[2025-09-10T18:52:16.278Z] ℹ️  User connection updated in session tracking {
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "userId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "connectionId": "54a739fa-341b",
+  "preservedLanguage": "es",
+  "totalUsers": 2
+}
+[2025-09-10T18:52:16.279Z] 🔄 PIPELINE INIT: Per-user Audio Connector setup {
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "userId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "connectionId": "54a739fa-341b",
+  "connectionType": "Per-User Audio Connector"
+}
+[2025-09-10T18:52:16.279Z] ℹ️  🔍 AUDIO CONNECTOR DEBUG: Connection establishment analysis {
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "userId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "websocketId": "54a739fa-341b",
+  "isAudioConnector": true,
+  "sessionUsersTotal": 2,
+  "allSessionUsers": [
+    {
+      "userId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+      "language": "fr",
+      "isActive": true,
+      "connectionType": "Web Client"
+    },
+    {
+      "userId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+      "language": "es",
+      "isActive": true,
+      "connectionType": "Audio Connector"
+    }
+  ],
+  "connectionReadyState": 1,
+  "timestamp": "2025-09-10T18:52:16.279Z"
+}
+[2025-09-10T18:52:16.288Z] 🔄 PIPELINE 1: Deepgram STT configured with language-optimized settings {
+  "userLanguage": "es",
+  "deepgramSTTLanguage": "es",
+  "model": "nova-2",
+  "sampleRate": "16kHz",
+  "encoding": "linear16",
+  "channels": 1,
+  "interimResults": "disabled (final only)",
+  "smartFormat": "enabled",
+  "note": "Using es → es for better STT accuracy",
+  "stttLanguageFlow": "User selected \"es\" → Deepgram STT gets \"es\""
+}
+[2025-09-10T18:52:16.962Z] ✅ Deepgram STT connection opened and ready 
+[2025-09-10T18:52:17.289Z] ℹ️  Deepgram connection initialization complete {
+  "connectionState": 1
+}
+[2025-09-10T18:52:19.657Z] ℹ️  Per-user Audio Connector connection request {
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "userId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73"
+}
+[2025-09-10T18:52:19.658Z] ℹ️  Generating Audio Connector token with data: {
+  "userId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "type": "audio_connector",
+  "role": "translator",
+  "timestamp": 1757530339658
+}
+[2025-09-10T18:52:20.213Z] ℹ️  WebSocket upgrade request received {
+  "url": "/?userId=26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "headers": {
+    "host": "2d4914cf2967.ngrok.app",
+    "user-agent": "WSBridgeV2",
+    "connection": "Upgrade",
+    "origin": "wss://2d4914cf2967.ngrok.app",
+    "sec-websocket-key": "YczDbRFnbVkgnKd7kje19A==",
+    "sec-websocket-protocol": "WSBRIDGE",
+    "sec-websocket-version": "13",
+    "upgrade": "websocket",
+    "x-forwarded-for": "35.94.34.212",
+    "x-forwarded-host": "2d4914cf2967.ngrok.app",
+    "x-forwarded-proto": "https",
+    "accept-encoding": "gzip"
+  }
+}
+[2025-09-10T18:52:20.214Z] ℹ️  New WebSocket connection established {
+  "connectionId": "c9257d15-43a1",
+  "userId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "connectionType": "Per-User Audio Connector"
+}
+[2025-09-10T18:52:20.287Z] ℹ️  User connection updated in session tracking {
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "userId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "connectionId": "c9257d15-43a1",
+  "preservedLanguage": "fr",
+  "totalUsers": 2
+}
+[2025-09-10T18:52:20.288Z] 🔄 PIPELINE INIT: Per-user Audio Connector setup {
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "userId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "connectionId": "c9257d15-43a1",
+  "connectionType": "Per-User Audio Connector"
+}
+[2025-09-10T18:52:20.288Z] ℹ️  🔍 AUDIO CONNECTOR DEBUG: Connection establishment analysis {
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "userId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "websocketId": "c9257d15-43a1",
+  "isAudioConnector": true,
+  "sessionUsersTotal": 2,
+  "allSessionUsers": [
+    {
+      "userId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+      "language": "fr",
+      "isActive": true,
+      "connectionType": "Audio Connector"
+    },
+    {
+      "userId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+      "language": "es",
+      "isActive": true,
+      "connectionType": "Audio Connector"
+    }
+  ],
+  "connectionReadyState": 1,
+  "timestamp": "2025-09-10T18:52:20.288Z"
+}
+[2025-09-10T18:52:20.291Z] 🔄 PIPELINE 1: Deepgram STT configured with language-optimized settings {
+  "userLanguage": "fr",
+  "deepgramSTTLanguage": "fr",
+  "model": "nova-2",
+  "sampleRate": "16kHz",
+  "encoding": "linear16",
+  "channels": 1,
+  "interimResults": "disabled (final only)",
+  "smartFormat": "enabled",
+  "note": "Using fr → fr for better STT accuracy",
+  "stttLanguageFlow": "User selected \"fr\" → Deepgram STT gets \"fr\""
+}
+[2025-09-10T18:52:20.306Z] ✅ Per-user Audio Connector connected {
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "userId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "connectionId": "b1a43b17-bcb6-4bf3-8bed-5ef99f9705a4",
+  "audioRate": "16kHz",
+  "bidirectional": true
+}
+[2025-09-10T18:52:20.539Z] ✅ Deepgram STT connection opened and ready 
+[2025-09-10T18:52:21.293Z] ℹ️  Deepgram connection initialization complete {
+  "connectionState": 1
+}
+[2025-09-10T18:52:29.082Z] ℹ️  📝 Final transcript {
+  "transcript": "Combien d'argent veux-tu",
+  "confidence": 0.9996745,
+  "userId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "userLanguage": "fr",
+  "deepgramSTTLanguage": "fr"
+}
+[2025-09-10T18:52:29.082Z] ℹ️  📝 Buffering sentence {
+  "parts": "3 words",
+  "willProcessIn": "1.5s"
+}
+[2025-09-10T18:52:30.584Z] 🔄 PIPELINE 2: Processing complete sentence from user {
+  "speakerUserId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "length": "24 chars",
+  "words": 3
+}
+[2025-09-10T18:52:30.605Z] ℹ️  Original transcription sent to web client {
+  "speakerUserId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "clientUserId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "text": "Combien d'argent veux-tu"
+}
+[2025-09-10T18:52:30.606Z] ℹ️  Original transcription sent to web client {
+  "speakerUserId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "clientUserId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "text": "Combien d'argent veux-tu"
+}
+[2025-09-10T18:52:30.607Z] ℹ️  🔍 DEBUG: Checking users in session {
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "speakerUserId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "totalUsersInSession": 2,
+  "allUserIds": [
+    "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+    "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3"
+  ]
+}
+[2025-09-10T18:52:30.607Z] ℹ️  🔍 DEBUG: Checking user {
+  "userId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "speakerUserId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "isActive": true,
+  "language": "fr",
+  "isDifferentUser": false
+}
+[2025-09-10T18:52:30.607Z] ℹ️  🔍 DEBUG: Checking user {
+  "userId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "speakerUserId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "isActive": true,
+  "language": "es",
+  "isDifferentUser": true
+}
+[2025-09-10T18:52:30.607Z] ℹ️  ✅ Found other user for translation {
+  "userId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "language": "es"
+}
+[2025-09-10T18:52:30.607Z] ℹ️  🔍 DEBUG: getOtherUsersInSession result {
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "speakerUserId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "foundUsers": 1,
+  "userLanguages": [
+    {
+      "userId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+      "language": "es"
+    }
+  ]
+}
+[2025-09-10T18:52:30.608Z] ℹ️  🔍 SESSION DEBUG: Multi-user translation analysis {
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "speakerUserId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "totalOtherUsers": 1,
+  "sessionUsersMapSize": 2,
+  "allUsersInSession": [
+    {
+      "userId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+      "language": "fr",
+      "isActive": true,
+      "connectionId": "c9257d15-43a1",
+      "isAudioConnector": true,
+      "websocketState": 1
+    },
+    {
+      "userId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+      "language": "es",
+      "isActive": true,
+      "connectionId": "54a739fa-341b",
+      "isAudioConnector": true,
+      "websocketState": 1
+    }
+  ],
+  "otherUsersFound": [
+    {
+      "userId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+      "language": "es",
+      "connectionId": "54a739fa-341b",
+      "websocketState": 1
+    }
+  ]
+}
+[2025-09-10T18:52:30.608Z] ℹ️  Processing translations for 1 users {
+  "speakerUserId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "recipients": [
+    {
+      "userId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+      "language": "es"
+    }
+  ]
+}
+[2025-09-10T18:52:30.608Z] ℹ️  Using speaker's language preference for translation {
+  "speakerLanguage": "fr",
+  "targetLanguage": "es",
+  "text": "Combien d'argent veux-tu..."
+}
+[2025-09-10T18:52:30.898Z] 🔄 PIPELINE 3: Translation completed {
+  "speakerUserId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "targetUserId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "speakerLanguage": "fr",
+  "targetLanguage": "es",
+  "googleTranslateFrom": "fr",
+  "googleTranslateTo": "es",
+  "fromLang": "fr",
+  "toLang": "es",
+  "textLength": "21 chars"
+}
+[2025-09-10T18:52:30.899Z] 🔄 PIPELINE 4-TTS: Voice model selected for TTS {
+  "targetUserId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "targetUserLanguage": "es",
+  "selectedVoiceModel": "aura-2-celeste-es",
+  "isNativeVoice": true,
+  "ttsLanguageFlow": "es → Native aura-2-celeste-es voice",
+  "note": "Native voice available"
+}
+[2025-09-10T18:52:31.188Z] 🔄 PIPELINE 4: TTS generated for user {
+  "speakerUserId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "targetUserId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "voiceModel": "aura-2-celeste-es",
+  "language": "es",
+  "textLength": "21 chars"
+}
+[2025-09-10T18:52:31.190Z] ℹ️  🔍 AUDIO ROUTING DEBUG: Analyzing TTS routing decision {
+  "speakerUserId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "targetUserId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "targetUserConnectionId": "54a739fa-341b",
+  "isTargetSameAsSpeaker": false,
+  "websocketReadyState": 1,
+  "websocketStates": {
+    "0": "CONNECTING",
+    "1": "OPEN",
+    "2": "CLOSING",
+    "3": "CLOSED"
+  },
+  "isWebSocketOpen": true,
+  "isAudioConnector": true,
+  "willSendAudio": true,
+  "voiceModel": "aura-2-celeste-es",
+  "textToSpeak": "Cuanto dinero quieres..."
+}
+[2025-09-10T18:52:31.193Z] ℹ️  🔊 AUDIO ROUTING: Sending TTS audio to target user {
+  "speakerUserId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "targetUserId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "targetConnectionId": "54a739fa-341b",
+  "routingRule": "speakerUserId !== targetUserId",
+  "feedbackPrevention": "✅ ACTIVE"
+}
+[2025-09-10T18:52:32.214Z] 🔊 AUDIO: TTS audio prepared for transmission (67.5KB)
+[2025-09-10T18:52:32.215Z] 🔄 PIPELINE 5: Sending 67.5KB audio to video session 
+[2025-09-10T18:52:32.216Z] ℹ️  🔍 AUDIO TRANSMISSION DEBUG: WebSocket analysis before sending {
+  "websocketId": "54a739fa-341b",
+  "userId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "isAudioConnector": true,
+  "readyState": 1,
+  "readyStateDescription": "OPEN",
+  "audioDataSizeKB": 67,
+  "bufferSizeKB": 68,
+  "chunksToSend": 108,
+  "timestamp": "2025-09-10T18:52:32.216Z"
+}
+[2025-09-10T18:52:32.220Z] ✅ Audio transmission completed: 108 chunks sent 
+[2025-09-10T18:52:32.220Z] ℹ️  🔊 AUDIO TRANSMISSION DEBUG: Final transmission summary {
+  "websocketId": "54a739fa-341b",
+  "userId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "chunksSent": 108,
+  "expectedChunks": 108,
+  "transmissionComplete": true,
+  "audioSizeKB": 67,
+  "finalWebSocketState": 1
+}
+[2025-09-10T18:52:32.221Z] 🔄 PIPELINE 5: TTS audio sent to user {
+  "speakerUserId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "targetUserId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "method": "Audio Connector",
+  "note": "Audio feedback prevention: NOT sent back to speaker"
+}
+[2025-09-10T18:52:32.222Z] ℹ️  Transcription sent to user's web client {
+  "speakerUserId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "targetUserId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "text": "Cuanto dinero quieres"
+}
+[2025-09-10T18:52:38.284Z] 🔊 AUDIO: Audio data forwarded to Deepgram STT (0.6KB)
+[2025-09-10T18:52:41.394Z] ℹ️  📝 Final transcript {
+  "transcript": "Dame mucho dinero.",
+  "confidence": 0.85546875,
+  "userId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "userLanguage": "es",
+  "deepgramSTTLanguage": "es"
+}
+[2025-09-10T18:52:41.396Z] ℹ️  📝 Buffering sentence {
+  "parts": "3 words",
+  "willProcessIn": "1.5s"
+}
+[2025-09-10T18:52:42.897Z] 🔄 PIPELINE 2: Processing complete sentence from user {
+  "speakerUserId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "length": "18 chars",
+  "words": 3
+}
+[2025-09-10T18:52:42.899Z] ℹ️  Original transcription sent to web client {
+  "speakerUserId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "clientUserId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "text": "Dame mucho dinero."
+}
+[2025-09-10T18:52:42.904Z] ℹ️  Original transcription sent to web client {
+  "speakerUserId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "clientUserId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "text": "Dame mucho dinero."
+}
+[2025-09-10T18:52:42.905Z] ℹ️  🔍 DEBUG: Checking users in session {
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "speakerUserId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "totalUsersInSession": 2,
+  "allUserIds": [
+    "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+    "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3"
+  ]
+}
+[2025-09-10T18:52:42.905Z] ℹ️  🔍 DEBUG: Checking user {
+  "userId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "speakerUserId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "isActive": true,
+  "language": "fr",
+  "isDifferentUser": true
+}
+[2025-09-10T18:52:42.906Z] ℹ️  ✅ Found other user for translation {
+  "userId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "language": "fr"
+}
+[2025-09-10T18:52:42.906Z] ℹ️  🔍 DEBUG: Checking user {
+  "userId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "speakerUserId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "isActive": true,
+  "language": "es",
+  "isDifferentUser": false
+}
+[2025-09-10T18:52:42.906Z] ℹ️  🔍 DEBUG: getOtherUsersInSession result {
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "speakerUserId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "foundUsers": 1,
+  "userLanguages": [
+    {
+      "userId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+      "language": "fr"
+    }
+  ]
+}
+[2025-09-10T18:52:42.906Z] ℹ️  🔍 SESSION DEBUG: Multi-user translation analysis {
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "speakerUserId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "totalOtherUsers": 1,
+  "sessionUsersMapSize": 2,
+  "allUsersInSession": [
+    {
+      "userId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+      "language": "fr",
+      "isActive": true,
+      "connectionId": "c9257d15-43a1",
+      "isAudioConnector": true,
+      "websocketState": 1
+    },
+    {
+      "userId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+      "language": "es",
+      "isActive": true,
+      "connectionId": "54a739fa-341b",
+      "isAudioConnector": true,
+      "websocketState": 1
+    }
+  ],
+  "otherUsersFound": [
+    {
+      "userId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+      "language": "fr",
+      "connectionId": "c9257d15-43a1",
+      "websocketState": 1
+    }
+  ]
+}
+[2025-09-10T18:52:42.907Z] ℹ️  Processing translations for 1 users {
+  "speakerUserId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "recipients": [
+    {
+      "userId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+      "language": "fr"
+    }
+  ]
+}
+[2025-09-10T18:52:42.907Z] ℹ️  Using speaker's language preference for translation {
+  "speakerLanguage": "es",
+  "targetLanguage": "fr",
+  "text": "Dame mucho dinero...."
+}
+[2025-09-10T18:52:44.427Z] 🔄 PIPELINE 3: Translation completed {
+  "speakerUserId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "targetUserId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "speakerLanguage": "es",
+  "targetLanguage": "fr",
+  "googleTranslateFrom": "es",
+  "googleTranslateTo": "fr",
+  "fromLang": "es",
+  "toLang": "fr",
+  "textLength": "29 chars"
+}
+[2025-09-10T18:52:44.427Z] 🔄 PIPELINE 4-TTS: Voice model selected for TTS {
+  "targetUserId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "targetUserLanguage": "fr",
+  "selectedVoiceModel": "aura-2-asteria-en",
+  "isNativeVoice": false,
+  "ttsLanguageFlow": "fr → English voice (Deepgram limitation)",
+  "note": "Using English voice - text is correctly translated but accent is English"
+}
+[2025-09-10T18:52:45.055Z] 🔄 PIPELINE 4: TTS generated for user {
+  "speakerUserId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "targetUserId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "voiceModel": "aura-2-asteria-en",
+  "language": "fr",
+  "textLength": "29 chars"
+}
+[2025-09-10T18:52:45.055Z] ℹ️  🔍 AUDIO ROUTING DEBUG: Analyzing TTS routing decision {
+  "speakerUserId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "targetUserId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "targetUserConnectionId": "c9257d15-43a1",
+  "isTargetSameAsSpeaker": false,
+  "websocketReadyState": 1,
+  "websocketStates": {
+    "0": "CONNECTING",
+    "1": "OPEN",
+    "2": "CLOSING",
+    "3": "CLOSED"
+  },
+  "isWebSocketOpen": true,
+  "isAudioConnector": true,
+  "willSendAudio": true,
+  "voiceModel": "aura-2-asteria-en",
+  "textToSpeak": "Donnez-moi beaucoup d'argent...."
+}
+[2025-09-10T18:52:45.056Z] ℹ️  🔊 AUDIO ROUTING: Sending TTS audio to target user {
+  "speakerUserId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "targetUserId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "targetConnectionId": "c9257d15-43a1",
+  "routingRule": "speakerUserId !== targetUserId",
+  "feedbackPrevention": "✅ ACTIVE"
+}
+[2025-09-10T18:52:46.335Z] 🔊 AUDIO: Audio data forwarded to Deepgram STT (0.6KB)
+[2025-09-10T18:52:46.630Z] 🔊 AUDIO: TTS audio prepared for transmission (100.0KB)
+[2025-09-10T18:52:46.631Z] 🔄 PIPELINE 5: Sending 100.0KB audio to video session 
+[2025-09-10T18:52:46.631Z] ℹ️  🔍 AUDIO TRANSMISSION DEBUG: WebSocket analysis before sending {
+  "websocketId": "c9257d15-43a1",
+  "userId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "isAudioConnector": true,
+  "readyState": 1,
+  "readyStateDescription": "OPEN",
+  "audioDataSizeKB": 100,
+  "bufferSizeKB": 100,
+  "chunksToSend": 160,
+  "timestamp": "2025-09-10T18:52:46.631Z"
+}
+[2025-09-10T18:52:46.634Z] ✅ Audio transmission completed: 160 chunks sent 
+[2025-09-10T18:52:46.635Z] ℹ️  🔊 AUDIO TRANSMISSION DEBUG: Final transmission summary {
+  "websocketId": "c9257d15-43a1",
+  "userId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "chunksSent": 160,
+  "expectedChunks": 160,
+  "transmissionComplete": true,
+  "audioSizeKB": 100,
+  "finalWebSocketState": 1
+}
+[2025-09-10T18:52:46.635Z] 🔄 PIPELINE 5: TTS audio sent to user {
+  "speakerUserId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "targetUserId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "method": "Audio Connector",
+  "note": "Audio feedback prevention: NOT sent back to speaker"
+}
+[2025-09-10T18:52:46.635Z] ℹ️  Transcription sent to user's web client {
+  "speakerUserId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "targetUserId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "text": "Donnez-moi beaucoup d'argent."
+}
+[2025-09-10T18:52:46.654Z] 🔊 AUDIO: Audio data forwarded to Deepgram STT (0.6KB)
+[2025-09-10T18:52:46.765Z] 🔊 AUDIO: Audio data forwarded to Deepgram STT (0.6KB)
+[2025-09-10T18:52:48.250Z] ℹ️  📝 Final transcript {
+  "transcript": "Donis Mois.",
+  "confidence": 0.48120117,
+  "userId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "userLanguage": "es",
+  "deepgramSTTLanguage": "es"
+}
+[2025-09-10T18:52:49.288Z] ℹ️  📝 Final transcript {
+  "transcript": "Bokú,",
+  "confidence": 0.5617676,
+  "userId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "userLanguage": "es",
+  "deepgramSTTLanguage": "es"
+}
+[2025-09-10T18:52:49.295Z] ℹ️  📝 Buffering sentence {
+  "parts": "3 words",
+  "willProcessIn": "1.5s"
+}
+[2025-09-10T18:52:50.258Z] ℹ️  📝 Final transcript {
+  "transcript": "targett.",
+  "confidence": 0.5438843,
+  "userId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "userLanguage": "es",
+  "deepgramSTTLanguage": "es"
+}
+[2025-09-10T18:52:50.259Z] ℹ️  📝 Buffering sentence {
+  "parts": "4 words",
+  "willProcessIn": "1.5s"
+}
+[2025-09-10T18:52:51.759Z] 🔄 PIPELINE 2: Processing complete sentence from user {
+  "speakerUserId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "length": "26 chars",
+  "words": 4
+}
+[2025-09-10T18:52:51.762Z] ℹ️  Original transcription sent to web client {
+  "speakerUserId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "clientUserId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "text": "Donis Mois. Bokú, targett."
+}
+[2025-09-10T18:52:51.763Z] ℹ️  Original transcription sent to web client {
+  "speakerUserId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "clientUserId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "text": "Donis Mois. Bokú, targett."
+}
+[2025-09-10T18:52:51.763Z] ℹ️  🔍 DEBUG: Checking users in session {
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "speakerUserId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "totalUsersInSession": 2,
+  "allUserIds": [
+    "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+    "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3"
+  ]
+}
+[2025-09-10T18:52:51.764Z] ℹ️  🔍 DEBUG: Checking user {
+  "userId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "speakerUserId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "isActive": true,
+  "language": "fr",
+  "isDifferentUser": true
+}
+[2025-09-10T18:52:51.764Z] ℹ️  ✅ Found other user for translation {
+  "userId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "language": "fr"
+}
+[2025-09-10T18:52:51.764Z] ℹ️  🔍 DEBUG: Checking user {
+  "userId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "speakerUserId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "isActive": true,
+  "language": "es",
+  "isDifferentUser": false
+}
+[2025-09-10T18:52:51.765Z] ℹ️  🔍 DEBUG: getOtherUsersInSession result {
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "speakerUserId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "foundUsers": 1,
+  "userLanguages": [
+    {
+      "userId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+      "language": "fr"
+    }
+  ]
+}
+[2025-09-10T18:52:51.765Z] ℹ️  🔍 SESSION DEBUG: Multi-user translation analysis {
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "speakerUserId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "totalOtherUsers": 1,
+  "sessionUsersMapSize": 2,
+  "allUsersInSession": [
+    {
+      "userId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+      "language": "fr",
+      "isActive": true,
+      "connectionId": "c9257d15-43a1",
+      "isAudioConnector": true,
+      "websocketState": 1
+    },
+    {
+      "userId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+      "language": "es",
+      "isActive": true,
+      "connectionId": "54a739fa-341b",
+      "isAudioConnector": true,
+      "websocketState": 1
+    }
+  ],
+  "otherUsersFound": [
+    {
+      "userId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+      "language": "fr",
+      "connectionId": "c9257d15-43a1",
+      "websocketState": 1
+    }
+  ]
+}
+[2025-09-10T18:52:51.765Z] ℹ️  Processing translations for 1 users {
+  "speakerUserId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "recipients": [
+    {
+      "userId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+      "language": "fr"
+    }
+  ]
+}
+[2025-09-10T18:52:51.765Z] ℹ️  Using speaker's language preference for translation {
+  "speakerLanguage": "es",
+  "targetLanguage": "fr",
+  "text": "Donis Mois. Bokú, targett...."
+}
+[2025-09-10T18:52:53.337Z] 🔄 PIPELINE 3: Translation completed {
+  "speakerUserId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "targetUserId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "speakerLanguage": "es",
+  "targetLanguage": "fr",
+  "googleTranslateFrom": "es",
+  "googleTranslateTo": "fr",
+  "fromLang": "tet",
+  "toLang": "fr",
+  "textLength": "26 chars"
+}
+[2025-09-10T18:52:53.338Z] 🔄 PIPELINE 4-TTS: Voice model selected for TTS {
+  "targetUserId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "targetUserLanguage": "fr",
+  "selectedVoiceModel": "aura-2-asteria-en",
+  "isNativeVoice": false,
+  "ttsLanguageFlow": "fr → English voice (Deepgram limitation)",
+  "note": "Using English voice - text is correctly translated but accent is English"
+}
+[2025-09-10T18:52:53.857Z] 🔄 PIPELINE 4: TTS generated for user {
+  "speakerUserId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "targetUserId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "voiceModel": "aura-2-asteria-en",
+  "language": "fr",
+  "textLength": "26 chars"
+}
+[2025-09-10T18:52:53.861Z] ℹ️  🔍 AUDIO ROUTING DEBUG: Analyzing TTS routing decision {
+  "speakerUserId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "targetUserId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "targetUserConnectionId": "c9257d15-43a1",
+  "isTargetSameAsSpeaker": false,
+  "websocketReadyState": 1,
+  "websocketStates": {
+    "0": "CONNECTING",
+    "1": "OPEN",
+    "2": "CLOSING",
+    "3": "CLOSED"
+  },
+  "isWebSocketOpen": true,
+  "isAudioConnector": true,
+  "willSendAudio": true,
+  "voiceModel": "aura-2-asteria-en",
+  "textToSpeak": "Donis Mois. Boku, Targett...."
+}
+[2025-09-10T18:52:53.862Z] ℹ️  🔊 AUDIO ROUTING: Sending TTS audio to target user {
+  "speakerUserId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "targetUserId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "targetConnectionId": "c9257d15-43a1",
+  "routingRule": "speakerUserId !== targetUserId",
+  "feedbackPrevention": "✅ ACTIVE"
+}
+[2025-09-10T18:52:54.588Z] ⚠️  Audio Connector shutdown requested {
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-"
+}
+[2025-09-10T18:52:54.590Z] ℹ️  Closing Audio Connector {
+  "connectionId": "54a739fa-341b",
+  "userId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-"
+}
+[2025-09-10T18:52:54.591Z] ℹ️  Deepgram connection properly closed for Audio Connector {
+  "connectionId": "54a739fa-341b",
+  "method": "requestClose() + null reference",
+  "note": "Following official Deepgram Node.js SDK documentation"
+}
+[2025-09-10T18:52:54.592Z] ✅ Audio Connector connection closed {
+  "connectionId": "54a739fa-341b",
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-"
+}
+[2025-09-10T18:52:54.593Z] ℹ️  Closing Audio Connector {
+  "connectionId": "c9257d15-43a1",
+  "userId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-"
+}
+[2025-09-10T18:52:54.594Z] ℹ️  Deepgram connection properly closed for Audio Connector {
+  "connectionId": "c9257d15-43a1",
+  "method": "requestClose() + null reference",
+  "note": "Following official Deepgram Node.js SDK documentation"
+}
+[2025-09-10T18:52:54.595Z] ✅ Audio Connector connection closed {
+  "connectionId": "c9257d15-43a1",
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-"
+}
+[2025-09-10T18:52:54.613Z] ⚠️  Deepgram connection is null, cannot send audio 
+[2025-09-10T18:52:54.667Z] ⚠️  WebSocket connection closed {
+  "connectionId": "c9257d15-43a1",
+  "userId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "code": 1005,
+  "reason": ""
+}
+[2025-09-10T18:52:54.667Z] ℹ️  User removed from session tracking {
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "userId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "remainingUsers": 1
+}
+[2025-09-10T18:52:54.668Z] ⚠️  WebSocket connection closed {
+  "connectionId": "54a739fa-341b",
+  "userId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "code": 1005,
+  "reason": ""
+}
+[2025-09-10T18:52:54.668Z] ℹ️  User removed from session tracking {
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "userId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "remainingUsers": 0
+}
+[2025-09-10T18:52:54.668Z] ℹ️  Session removed - no users remaining {
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-"
+}
+[2025-09-10T18:52:54.717Z] ℹ️  📊 Deepgram metadata received {
+  "metadata": {
+    "type": "Metadata",
+    "transaction_key": "deprecated",
+    "request_id": "92e30d66-ca65-4036-9d37-5c1cf9caab4e",
+    "sha256": "56602642f133d4457519b3139a46f63abee945a22eccce801015ea5dd2e950e8",
+    "created": "2025-09-10T18:52:17.084Z",
+    "duration": 37.62,
+    "channels": 1,
+    "models": [
+      "26cf4c00-4a6b-437e-9bbc-9f71deb2ea43"
+    ],
+    "model_info": {
+      "26cf4c00-4a6b-437e-9bbc-9f71deb2ea43": {
+        "name": "2-general-nova",
+        "version": "2023-12-04.34818",
+        "arch": "nova-2"
+      }
+    }
+  }
+}
+[2025-09-10T18:52:54.750Z] ℹ️  📊 Deepgram metadata received {
+  "metadata": {
+    "type": "Metadata",
+    "transaction_key": "deprecated",
+    "request_id": "0732303e-e487-4394-8fec-35fe9f9a5e5c",
+    "sha256": "91be8d616eac4c06810c80e8591809d16866abf7dacb8293e1e8ef38e3e01983",
+    "created": "2025-09-10T18:52:20.669Z",
+    "duration": 34.06,
+    "channels": 1,
+    "models": [
+      "bfe8d581-5250-4f37-9bab-c6f06c12690e"
+    ],
+    "model_info": {
+      "bfe8d581-5250-4f37-9bab-c6f06c12690e": {
+        "name": "2-general-nova",
+        "version": "2023-11-21.6308",
+        "arch": "nova-2"
+      }
+    }
+  }
+}
+[2025-09-10T18:52:54.781Z] ⚠️  Deepgram connection closed {
+  "type": "close",
+  "timeStamp": 121028.209667
+}
+[2025-09-10T18:52:54.874Z] ⚠️  Deepgram connection closed {
+  "type": "close",
+  "timeStamp": 121122.187459
+}
+[2025-09-10T18:52:55.114Z] 🔊 AUDIO: TTS audio prepared for transmission (80.0KB)
+[2025-09-10T18:52:55.115Z] 🔄 PIPELINE 5: Sending 80.0KB audio to video session 
+[2025-09-10T18:52:55.115Z] ℹ️  🔍 AUDIO TRANSMISSION DEBUG: WebSocket analysis before sending {
+  "websocketId": "c9257d15-43a1",
+  "userId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
+  "isAudioConnector": true,
+  "readyState": 3,
+  "readyStateDescription": "CLOSED",
+  "audioDataSizeKB": 80,
+  "bufferSizeKB": 80,
+  "chunksToSend": 128,
+  "timestamp": "2025-09-10T18:52:55.115Z"
+}
+[2025-09-10T18:52:55.115Z] ❌ 🚫 AUDIO TRANSMISSION: Cannot send - WebSocket not OPEN [object Object]
+[2025-09-10T18:52:55.116Z] 🔄 PIPELINE 5: TTS audio sent to user {
+  "speakerUserId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "targetUserId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "method": "Audio Connector",
+  "note": "Audio feedback prevention: NOT sent back to speaker"
+}
+[2025-09-10T18:52:55.116Z] ℹ️  Transcription sent to user's web client {
+  "speakerUserId": "dcdb817b-1f09-4d9f-b834-9ae04dd7b1f3",
+  "targetUserId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
+  "text": "Donis Mois. Boku, Targett."
+}
+[2025-09-10T18:52:55.671Z] ⚠️  Audio Connector shutdown requested {
+  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-"
+}

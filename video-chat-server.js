@@ -588,19 +588,80 @@ const playback_to_websocket = async (ws, stream) => {
         )}KB audio to video session`
       );
 
+      // ===== ENHANCED DEBUG: Audio Transmission Analysis =====
+      log.info(
+        "🔍 AUDIO TRANSMISSION DEBUG: WebSocket analysis before sending",
+        {
+          websocketId: ws.id,
+          userId: ws.userId,
+          sessionId: ws.sessionId,
+          isAudioConnector: ws.isAudioConnector,
+          readyState: ws.readyState,
+          readyStateDescription:
+            {
+              0: "CONNECTING",
+              1: "OPEN",
+              2: "CLOSING",
+              3: "CLOSED",
+            }[ws.readyState] || "UNKNOWN",
+          audioDataSizeKB: Math.round(audioData.length / 1024),
+          bufferSizeKB: Math.round(buffer.length / 1024),
+          chunksToSend: Math.ceil(audioData.length / 640),
+          timestamp: new Date().toISOString(),
+        }
+      );
+
+      if (ws.readyState !== 1) {
+        log.error("🚫 AUDIO TRANSMISSION: Cannot send - WebSocket not OPEN", {
+          websocketId: ws.id,
+          userId: ws.userId,
+          currentState: ws.readyState,
+          expectedState: 1,
+          audioLostKB: Math.round(audioData.length / 1024),
+        });
+        return;
+      }
+
       // Send audio in 640-byte chunks (optimal for real-time streaming)
       let chunksSent = 0;
       for (let i = 0; i <= audioData.length; i += 640) {
-        ws.send(audioData.subarray(i, i + 640));
-        chunksSent++;
+        try {
+          ws.send(audioData.subarray(i, i + 640));
+          chunksSent++;
+        } catch (chunkError) {
+          log.error("🚫 AUDIO TRANSMISSION: Chunk send failed", {
+            chunkNumber: chunksSent,
+            chunksSentSoFar: chunksSent,
+            totalChunks: Math.ceil(audioData.length / 640),
+            error: chunkError.message,
+            websocketState: ws.readyState,
+          });
+          break;
+        }
       }
 
       log.success(`Audio transmission completed: ${chunksSent} chunks sent`);
+
+      log.info("🔊 AUDIO TRANSMISSION DEBUG: Final transmission summary", {
+        websocketId: ws.id,
+        userId: ws.userId,
+        chunksSent: chunksSent,
+        expectedChunks: Math.ceil(audioData.length / 640),
+        transmissionComplete: chunksSent === Math.ceil(audioData.length / 640),
+        audioSizeKB: Math.round(audioData.length / 1024),
+        finalWebSocketState: ws.readyState,
+      });
     } else {
       log.error("No audio stream provided for playback");
     }
   } catch (error) {
     log.error("Audio transmission failed", error);
+    log.error("🚫 AUDIO TRANSMISSION: Critical failure", {
+      websocketId: ws?.id || "unknown",
+      userId: ws?.userId || "unknown",
+      error: error.message,
+      stack: error.stack,
+    });
   }
 };
 
@@ -695,6 +756,29 @@ wsServer.on("connection", (websocket, request) => {
         userId: userId,
         connectionId: websocket.id,
         connectionType: "Per-User Audio Connector",
+      });
+
+      // ===== ENHANCED DEBUG: Connection State Analysis =====
+      log.info("🔍 AUDIO CONNECTOR DEBUG: Connection establishment analysis", {
+        sessionId: sessionId,
+        userId: userId,
+        websocketId: websocket.id,
+        isAudioConnector: websocket.isAudioConnector,
+        sessionUsersTotal: sessionUsers.get(sessionId)?.size || 0,
+        allSessionUsers: sessionUsers.get(sessionId)
+          ? Array.from(sessionUsers.get(sessionId).entries()).map(
+              ([uid, info]) => ({
+                userId: uid,
+                language: info.language,
+                isActive: info.isActive,
+                connectionType: info.websocket?.isAudioConnector
+                  ? "Audio Connector"
+                  : "Web Client",
+              })
+            )
+          : [],
+        connectionReadyState: websocket.readyState,
+        timestamp: new Date().toISOString(),
       });
 
       /**
@@ -1007,12 +1091,48 @@ wsServer.on("connection", (websocket, request) => {
             // Get all other users in this session who need translations
             const otherUsers = getOtherUsersInSession(sessionId, speakerUserId);
 
+            log.info("🔍 SESSION DEBUG: Multi-user translation analysis", {
+              sessionId: sessionId,
+              speakerUserId: speakerUserId,
+              totalOtherUsers: otherUsers.length,
+              sessionUsersMapSize: sessionUsers.get(sessionId)?.size || 0,
+              allUsersInSession: sessionUsers.get(sessionId)
+                ? Array.from(sessionUsers.get(sessionId).entries()).map(
+                    ([userId, userInfo]) => ({
+                      userId: userId,
+                      language: userInfo.language,
+                      isActive: userInfo.isActive,
+                      connectionId: userInfo.connectionId,
+                      isAudioConnector:
+                        userInfo.websocket?.isAudioConnector || false,
+                      websocketState:
+                        userInfo.websocket?.readyState || "NO_WEBSOCKET",
+                    })
+                  )
+                : [],
+              otherUsersFound: otherUsers.map((u) => ({
+                userId: u.userId,
+                language: u.language,
+                connectionId: u.connectionId,
+                websocketState: u.websocket?.readyState || "NO_WEBSOCKET",
+              })),
+            });
+
             if (otherUsers.length === 0) {
-              log.info("No other users found to receive translations", {
-                sessionId,
-                speakerUserId,
-                transcript: completeTranscript,
-              });
+              log.warning(
+                "🚫 TRANSLATION: No other users found to receive translations",
+                {
+                  sessionId,
+                  speakerUserId,
+                  transcript: completeTranscript.substring(0, 100) + "...",
+                  possibleReasons: [
+                    "Only one user in session",
+                    "Other users haven't set language preferences",
+                    "Other users are inactive",
+                    "Session tracking issue",
+                  ],
+                }
+              );
               return; // Still return since we already sent to speaker
             }
 
@@ -1190,10 +1310,49 @@ wsServer.on("connection", (websocket, request) => {
 
                   // CRITICAL: Only send TTS to target user's Audio Connector, NOT back to speaker
                   // This prevents audio feedback loop where speaker hears their own translation
+
+                  // ENHANCED DEBUGGING: Log all routing decision factors
+                  log.info(
+                    "🔍 AUDIO ROUTING DEBUG: Analyzing TTS routing decision",
+                    {
+                      speakerUserId: speakerUserId,
+                      targetUserId: user.userId,
+                      targetUserConnectionId: user.connectionId,
+                      isTargetSameAsSpeaker: user.userId === speakerUserId,
+                      websocketReadyState: user.websocket.readyState,
+                      websocketStates: {
+                        0: "CONNECTING",
+                        1: "OPEN",
+                        2: "CLOSING",
+                        3: "CLOSED",
+                      },
+                      isWebSocketOpen:
+                        user.websocket.readyState === user.websocket.OPEN,
+                      isAudioConnector: user.websocket.isAudioConnector,
+                      willSendAudio:
+                        user.websocket.readyState === user.websocket.OPEN &&
+                        user.userId !== speakerUserId,
+                      voiceModel: voiceModel,
+                      textToSpeak:
+                        translationResult.text.substring(0, 100) + "...",
+                    }
+                  );
+
                   if (
                     user.websocket.readyState === user.websocket.OPEN &&
                     user.userId !== speakerUserId
                   ) {
+                    log.info(
+                      "🔊 AUDIO ROUTING: Sending TTS audio to target user",
+                      {
+                        speakerUserId: speakerUserId,
+                        targetUserId: user.userId,
+                        targetConnectionId: user.connectionId,
+                        routingRule: "speakerUserId !== targetUserId",
+                        feedbackPrevention: "✅ ACTIVE",
+                      }
+                    );
+
                     await playback_to_websocket(user.websocket, stream);
 
                     log.pipeline("5", "TTS audio sent to user", {
@@ -1203,19 +1362,37 @@ wsServer.on("connection", (websocket, request) => {
                       note: "Audio feedback prevention: NOT sent back to speaker",
                     });
                   } else if (user.userId === speakerUserId) {
-                    log.info(
-                      "Skipping TTS playback to speaker - prevents audio feedback",
+                    log.warning(
+                      "🚫 AUDIO ROUTING: Blocking TTS to speaker (feedback prevention)",
                       {
                         speakerUserId: speakerUserId,
                         targetUserId: user.userId,
+                        reason: "SAME_USER_ID",
+                        feedbackPrevention: "✅ WORKING",
                         note: "Speaker should not hear their own translation via Audio Connector",
+                        textBlocked:
+                          translationResult.text.substring(0, 50) + "...",
                       }
                     );
                   } else {
-                    log.warning("User WebSocket not ready for TTS playback", {
-                      targetUserId: user.userId,
-                      state: user.websocket.readyState,
-                    });
+                    log.error(
+                      "🚫 AUDIO ROUTING: Cannot send TTS - WebSocket not ready",
+                      {
+                        targetUserId: user.userId,
+                        websocketState: user.websocket.readyState,
+                        stateDescription:
+                          {
+                            0: "CONNECTING",
+                            1: "OPEN",
+                            2: "CLOSING",
+                            3: "CLOSED",
+                          }[user.websocket.readyState] || "UNKNOWN",
+                        connectionId: user.connectionId,
+                        isAudioConnector: user.websocket.isAudioConnector,
+                        textLost:
+                          translationResult.text.substring(0, 50) + "...",
+                      }
+                    );
                   }
                 } else {
                   log.info("Skipping TTS - same language preference", {

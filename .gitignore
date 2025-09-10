@@ -2,4 +2,5 @@ node_modules
 .env
 private.key
 DEV
-server-logs-*.log
+# server-logs-*.log
+# client-logs-*.log
