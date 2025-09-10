@@ -1453,15 +1453,31 @@ wsServer.on("connection", (websocket, request) => {
             sessionId: client.sessionId,
           });
 
-          // Close Deepgram connection if exists
-          if (
-            client.dgConnection &&
-            client.dgConnection.getReadyState() === 1
-          ) {
-            client.dgConnection.requestClose();
-            log.info("Deepgram connection closed for Audio Connector", {
-              connectionId: client.id,
-            });
+          // Close Deepgram connection following official documentation
+          if (client.dgConnection) {
+            try {
+              // Use the official Deepgram cleanup method (requestClose is preferred over deprecated finish)
+              client.dgConnection.requestClose();
+
+              // Set reference to null for garbage collection
+              client.dgConnection = null;
+
+              log.info(
+                "Deepgram connection properly closed for Audio Connector",
+                {
+                  connectionId: client.id,
+                  method: "requestClose() + null reference",
+                  note: "Following official Deepgram Node.js SDK documentation",
+                }
+              );
+            } catch (cleanupError) {
+              log.error("Error during Audio Connector Deepgram cleanup", {
+                connectionId: client.id,
+                error: cleanupError.message,
+              });
+              // Still set to null even if cleanup fails
+              client.dgConnection = null;
+            }
           }
 
           // Close the WebSocket connection
@@ -1571,12 +1587,28 @@ wsServer.on("connection", (websocket, request) => {
       }
     }
 
-    // Clean up Deepgram connection
+    // Clean up Deepgram connection following official documentation
     if (websocket.dgConnection != null) {
-      websocket.dgConnection.requestClose();
-      log.info("Deepgram connection cleaned up", {
-        userId: websocket.userId,
-      });
+      try {
+        // Use the official Deepgram cleanup method (requestClose is preferred over deprecated finish)
+        websocket.dgConnection.requestClose();
+
+        // Set reference to null for garbage collection
+        websocket.dgConnection = null;
+
+        log.info("Deepgram connection properly cleaned up", {
+          userId: websocket.userId,
+          method: "requestClose() + null reference",
+          note: "Following official Deepgram Node.js SDK documentation",
+        });
+      } catch (cleanupError) {
+        log.error("Error during Deepgram connection cleanup", {
+          userId: websocket.userId,
+          error: cleanupError.message,
+        });
+        // Still set to null even if cleanup fails
+        websocket.dgConnection = null;
+      }
     }
   });
 
