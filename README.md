@@ -1383,7 +1383,11 @@ The enhanced debugging logs prove that:
 
 ## **Logging & Monitoring**
 
-The application provides comprehensive logging with different categories:
+The application provides **dual-layer comprehensive logging** with both server-side and client-side capture:
+
+### **🔧 Server-Side Logging**
+
+Server logs are written to `server-logs-YYYY-MM-DD.log` with categorized entries:
 
 - **ℹ️ Info**: General application information
 - **✅ Success**: Successful operations
@@ -1392,9 +1396,73 @@ The application provides comprehensive logging with different categories:
 - **🔄 Pipeline**: STT→Translation→TTS pipeline steps
 - **🔊 Audio**: Audio processing metrics
 
-### **Sample Log Output**
+### **📱 Client-Side Logging (NEW)**
 
+**Client logs are automatically captured from browser console and written to `client-logs-YYYY-MM-DD.log`**
+
+**Features:**
+
+- **✅ Dual Output**: All console logs appear in browser AND server log file
+- **✅ Real-time Capture**: Automatically captures console.log, console.error, console.warn, console.info
+- **✅ User Identification**: Each log entry tagged with user's connectionId
+- **✅ WebSocket Transport**: Uses existing WebSocket connection for efficiency
+- **✅ Buffering**: Logs are buffered until WebSocket connection is ready
+
+**Example Client Log Entries:**
+
+```log
+[2025-09-10T22:52:42.913Z] 📱 CLIENT LOG [f5c28257-1657-4da3-9373-dd272be158ae]: WebSocket connected with connectionId as userId: f5c28257-1657-4da3-9373-dd272be158ae
+[2025-09-10T22:53:37.007Z] 📱 CLIENT LOG [669b0dc0-e4ae-4223-9fc4-0db925f3a956]: ✅ SUBSCRIBING TO OWN AUDIO CONNECTOR: Receive translations from other users
+[2025-09-10T22:53:46.069Z] 📱 CLIENT LOG [f5c28257-1657-4da3-9373-dd272be158ae]: Received message: { "type": "transcription", "originalText": "Combien d'argent veux-tu", "translatedText": "Combien d'argent veux-tu" }
 ```
+
+### **📊 Log File Management**
+
+**Automatic Log Creation:**
+
+- **Server logs**: `server-logs-2025-09-10.log`
+- **Client logs**: `client-logs-2025-09-10.log`
+- **Daily rotation**: New files created each day
+- **Git ignored**: Log files excluded from version control
+
+**Log File Locations:**
+
+```bash
+# View real-time server logs
+tail -f server-logs-$(date +%Y-%m-%d).log
+
+# View real-time client logs
+tail -f client-logs-$(date +%Y-%m-%d).log
+
+# Search for specific user activity
+grep "f5c28257-1657" client-logs-$(date +%Y-%m-%d).log
+```
+
+### **🔍 Enhanced Debugging Capabilities**
+
+**Complete Visibility:**
+
+- **Server Side**: Pipeline processing, Audio Connector states, translation flow
+- **Client Side**: UI interactions, WebSocket messages, Audio Connector subscriptions, stream management
+- **Cross-Reference**: Match server and client events using timestamps and connectionIds
+
+**Real-World Debugging Example:**
+
+```bash
+# Problem: User not hearing translations
+# Step 1: Check if user subscribed to their Audio Connector
+grep "SUBSCRIBING TO OWN AUDIO CONNECTOR" client-logs-2025-09-10.log
+
+# Step 2: Check if translation was generated server-side
+grep "TTS audio sent to user" server-logs-2025-09-10.log
+
+# Step 3: Check if client received transcription message
+grep "Received message.*transcription" client-logs-2025-09-10.log
+```
+
+### **Sample Server Log Output**
+
+```log
 [2025-09-02T10:30:15.123Z] ✅ Audio Connector connected successfully {
   "sessionId": "1_MX4xM...",
   "connectionId": "ac_12345",
@@ -1407,7 +1475,7 @@ The application provides comprehensive logging with different categories:
   "isFinal": true
 }
 
-[2025-09-02T10:30:16.789Z] 🔄 PIPELINE 3: Translation completed for Speaker 0 {
+[2025-09-02T10:30:16.789Z] 🔄 PIPELINE 3: Translation completed {
   "originalText": "Hola, ¿cómo estás?",
   "detectedLanguage": "es",
   "translatedText": "Hello, how are you?"
@@ -1418,7 +1486,7 @@ The application provides comprehensive logging with different categories:
 
 ### **Project Structure**
 
-```
+```text
 ├── video-chat-server.js   # Main application server
 ├── update-env.js          # Development setup with ngrok
 ├── package.json           # Dependencies (cleaned & optimized)
@@ -1589,7 +1657,7 @@ dgConnection.on(LiveTranscriptionEvents.Transcript, (data) => {
 
 When testing long sentences, you'll now see logs like:
 
-```
+```log
 [2025-09-03T17:00:00.123Z] 🎤 Speech started { timestamp: "12345" }
 [2025-09-03T17:00:01.456Z] 📝 Transcript received {
   transcript: "I'm very happy about that you attended",
@@ -1893,7 +1961,7 @@ token = videoClient.generateClientToken(sessionId, {
 });
 ```
 
-2. **Client-side Fix (views/js/client.js):**
+1. **Client-side Fix (views/js/client.js):**
 
 ```javascript
 // Extract user identification from stream connection data

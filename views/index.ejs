@@ -156,6 +156,99 @@
   var userId = null;
   var publisher = null;
   var session = null;
+
+  /**
+   * CLIENT-SIDE LOGGING SYSTEM
+   * Captures all console logs and sends them to server for file logging
+   * while maintaining console output for debugging
+   */
+  var clientLogBuffer = [];
+  var logToFileEnabled = true;
+  var originalConsole = {
+    log: console.log,
+    error: console.error,
+    warn: console.warn,
+    info: console.info,
+  };
+
+  // Enhanced logging function that logs to both console and file
+  function logToConsoleAndFile(level, args) {
+    // Always log to console first (maintains existing behavior)
+    originalConsole[level].apply(console, args);
+
+    if (logToFileEnabled && userId) {
+      // Create log entry with timestamp and level
+      const timestamp = new Date().toISOString();
+      const message = Array.from(args)
+        .map((arg) =>
+          typeof arg === "object" ? JSON.stringify(arg, null, 2) : String(arg)
+        )
+        .join(" ");
+
+      const logEntry = {
+        timestamp: timestamp,
+        level: level.toUpperCase(),
+        userId: userId,
+        sessionId: "<%=sessionId%>",
+        message: message,
+      };
+
+      // Send to server via WebSocket if available
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        try {
+          ws.send(
+            JSON.stringify({
+              command: "client_log",
+              logEntry: logEntry,
+            })
+          );
+        } catch (e) {
+          // If WebSocket fails, buffer the log for later
+          clientLogBuffer.push(logEntry);
+        }
+      } else {
+        // Buffer logs until WebSocket is ready
+        clientLogBuffer.push(logEntry);
+      }
+    }
+  }
+
+  // Override console methods to capture all logs
+  console.log = function () {
+    logToConsoleAndFile("log", arguments);
+  };
+  console.error = function () {
+    logToConsoleAndFile("error", arguments);
+  };
+  console.warn = function () {
+    logToConsoleAndFile("warn", arguments);
+  };
+  console.info = function () {
+    logToConsoleAndFile("info", arguments);
+  };
+
+  // Function to flush buffered logs when WebSocket becomes available
+  function flushLogBuffer() {
+    if (ws && ws.readyState === WebSocket.OPEN && clientLogBuffer.length > 0) {
+      console.log(
+        `📁 Flushing ${clientLogBuffer.length} buffered client logs to file`
+      );
+      clientLogBuffer.forEach((logEntry) => {
+        try {
+          ws.send(
+            JSON.stringify({
+              command: "client_log",
+              logEntry: logEntry,
+            })
+          );
+        } catch (e) {
+          originalConsole.error("Failed to send buffered log:", e);
+        }
+      });
+      clientLogBuffer = [];
+    }
+  }
+
   console.log("Waiting for video session to establish connectionId...");
 
   // Initialize DOM references when page loads
@@ -194,6 +287,17 @@
       };
       ws.send(JSON.stringify(msg));
       console.log("WebSocket connected with connectionId as userId:", userId);
+
+      // Flush any buffered client logs to file
+      setTimeout(flushLogBuffer, 100); // Small delay to ensure server is ready
+
+      // Test client logging system
+      setTimeout(() => {
+        console.log("📁 Client logging system initialized and working!");
+        console.info(
+          "Client logs will be saved to server-side client log file"
+        );
+      }, 200);
     };
 
     // Set up message handler

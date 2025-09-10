@@ -163,15 +163,20 @@ window.startSession = (sessionId, token, apiKey) => {
             return; // Skip ALL Audio Connectors when ownership is uncertain
           }
 
-          // ADDITIONAL SAFETY CHECK: If user has active translation, skip ALL other Audio Connectors
-          if (window.deepgram_in_use && !isOwnAudioConnector) {
+          // ARCHITECTURE CLARIFICATION:
+          // - Each user subscribes ONLY to their OWN Audio Connector
+          // - Their own Audio Connector receives TTS audio FROM other users' speech
+          // - We do NOT subscribe to other users' Audio Connectors
+          // - Server routes TTS audio to the target user's Audio Connector
+          if (!isOwnAudioConnector) {
             console.log(
-              "🚫 FEEDBACK PREVENTION: Skipping OTHER user's Audio Connector - we have our own translation active",
+              "🏗️ AUDIO ARCHITECTURE: Skipping OTHER user's Audio Connector - we only subscribe to our own",
               {
                 ourUserId: currentUserId,
                 streamOwner: audioConnectorOwner,
                 isOwnStream: isOwnAudioConnector,
-                deepgramInUse: window.deepgram_in_use,
+                reason:
+                  "Each user only subscribes to their own Audio Connector to receive translations",
               }
             );
             return;
@@ -193,21 +198,20 @@ window.startSession = (sessionId, token, apiKey) => {
             }
           }
 
-          const subscriptionType = isOwnAudioConnector
-            ? "OWN Audio Connector (for receiving our translated audio)"
-            : tokenDataAvailable
-            ? "OTHER user's Audio Connector (for receiving their translations)"
-            : "Audio Connector (ownership unknown - fallback mode)";
-
-          console.log(`✅ SAFE TO SUBSCRIBE: ${subscriptionType}`, {
-            isOwnAudioConnector,
-            tokenDataAvailable,
-            audioConnectorOwner,
-            currentUserId,
-            deepgramInUse: window.deepgram_in_use,
-            streamId: stream.streamId,
-            streamName: stream.name,
-          });
+          console.log(
+            `✅ SUBSCRIBING TO OWN AUDIO CONNECTOR: Receive translations from other users`,
+            {
+              isOwnAudioConnector,
+              tokenDataAvailable,
+              audioConnectorOwner,
+              currentUserId,
+              deepgramInUse: window.deepgram_in_use,
+              streamId: stream.streamId,
+              streamName: stream.name,
+              purpose:
+                "Our Audio Connector receives TTS audio when other users speak in different languages",
+            }
+          );
 
           // Create a completely hidden container for audio-only subscription
           const hiddenContainer = document.createElement("div");
@@ -231,7 +235,7 @@ window.startSession = (sessionId, token, apiKey) => {
                 console.error("Audio Connector subscribe error:", err);
               } else {
                 console.log(
-                  `✅ Audio Connector subscribed (receive-only mode): ${stream.name} (ID: ${subscriber.id})`
+                  `✅ OWN Audio Connector subscribed - ready to receive translations: ${stream.name} (ID: ${subscriber.id})`
                 );
               }
             }

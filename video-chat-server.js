@@ -125,7 +125,42 @@ const log = {
   },
 };
 
+// Client-side log file management
+const clientLogFileName = `client-logs-${
+  new Date().toISOString().split("T")[0]
+}.log`;
+const logClientToFile = (logEntry) => {
+  try {
+    const logMessage = `[${logEntry.timestamp}] 📱 CLIENT ${logEntry.level} [${logEntry.userId}]: ${logEntry.message}`;
+    fs.appendFileSync(clientLogFileName, logMessage + "\n");
+  } catch (error) {
+    log.error("Failed to write client log to file:", error);
+  }
+};
+
+const clientLog = {
+  write: (logEntry) => {
+    // Log to server console for debugging
+    const clientLogMessage = `📱 CLIENT ${logEntry.level} [${logEntry.userId}]: ${logEntry.message}`;
+    console.log(`[${logEntry.timestamp}] ${clientLogMessage}`);
+
+    // Write to client log file
+    logClientToFile(logEntry);
+  },
+  info: (message, userId = "unknown") => {
+    const logEntry = {
+      timestamp: new Date().toISOString(),
+      level: "INFO",
+      userId: userId,
+      sessionId: "",
+      message: message,
+    };
+    clientLog.write(logEntry);
+  },
+};
+
 log.info("🚀 Server starting up - logs saved to: " + logFileName);
+log.info("📱 Client logs will be saved to: " + clientLogFileName);
 log.info("Deepgram SDK initialized", { version: deepgram.version });
 
 // ===== SESSION & USER MANAGEMENT =====
@@ -1601,6 +1636,48 @@ wsServer.on("connection", (websocket, request) => {
           sessionId,
           userId,
           language,
+        });
+      }
+    }
+
+    // ===== CLIENT LOG CAPTURE =====
+    else if (data.toString().includes("client_log")) {
+      /**
+       * CLIENT-SIDE LOG CAPTURE
+       * Receives client-side console logs and writes them to client log file.
+       *
+       * Purpose:
+       * - Capture all client-side debugging information
+       * - Store client logs separate from server logs
+       * - Maintain visibility of frontend behavior for debugging
+       *
+       * Source: index.ejs client logging system
+       * Format: {"command":"client_log","logEntry":{...}}
+       * Trigger: Any console.log/error/warn calls on client side
+       */
+      try {
+        const messageData = JSON.parse(data);
+        const logEntry = messageData["logEntry"];
+
+        if (
+          logEntry &&
+          logEntry.timestamp &&
+          logEntry.level &&
+          logEntry.message
+        ) {
+          clientLog.write(logEntry);
+        } else {
+          log.warning("Invalid client log entry received", {
+            receivedData: messageData,
+            websocketId: websocket.id,
+            userId: websocket.userId,
+          });
+        }
+      } catch (error) {
+        log.error("Failed to process client log entry", {
+          error: error.message,
+          websocketId: websocket.id,
+          userId: websocket.userId,
         });
       }
     }
