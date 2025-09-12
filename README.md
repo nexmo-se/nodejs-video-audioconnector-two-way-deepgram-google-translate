@@ -1342,6 +1342,185 @@ Server logs are written to `server-logs-YYYY-MM-DD.log` and Client logs are writ
 - **Client Side**: UI interactions, WebSocket messages, Audio Connector subscriptions, stream management
 - **Cross-Reference**: Match server and client events using timestamps and connectionIds
 
+## **FAQ & Troubleshooting**
+
+### **Q1: How can I tell which user subscribed to which Audio Connector?**
+
+**Answer:** Yes! The client logs show detailed subscription decisions for each user.
+
+**From the logs, you can see:**
+
+#### **User f5c28257 (French user) subscription patterns:**
+
+**Detects OTHER user's Audio Connector → SKIPS:**
+
+```log
+[f5c28257]: 🔍 Audio Connector detection and subscription check: {
+  "audioConnectorOwner": "669b0dc0-e4ae-4223-9fc4-0db925f3a956",
+  "currentUserId": "f5c28257-1657-4da3-9373-dd272be158ae",
+  "isOwnAudioConnector": false,
+  "decision": "OTHER user's Audio Connector + no own translation - SUBSCRIBE to receive translations"
+}
+[f5c28257]: 🏗️ AUDIO ARCHITECTURE: Skipping OTHER user's Audio Connector - we only subscribe to our own
+```
+
+**Detects OWN Audio Connector → SUBSCRIBES:**
+
+```log
+[f5c28257]: 🔍 Audio Connector detection and subscription check: {
+  "audioConnectorOwner": "f5c28257-1657-4da3-9373-dd272be158ae",
+  "currentUserId": "f5c28257-1657-4da3-9373-dd272be158ae",
+  "isOwnAudioConnector": true,
+  "decision": "OWN Audio Connector - SUBSCRIBE for translated audio"
+}
+[f5c28257]: ✅ SUBSCRIBING TO OWN AUDIO CONNECTOR: Receive translations from other users
+```
+
+#### **Key Log Fields to Watch:**
+
+- `audioConnectorOwner`: Who owns the Audio Connector
+- `currentUserId`: The user making the subscription decision
+- `isOwnAudioConnector`: Boolean - true = subscribe, false = skip
+- `decision`: Human-readable explanation of the decision
+
+### **Q2: How can I tell which user's Audio Connector receives TTS audio?**
+
+**Answer:** Yes! The server logs clearly show TTS routing decisions with complete traceability.
+
+**Server logs show exact routing:**
+
+#### **French User speaks → TTS sent to Spanish User's Audio Connector:**
+
+```log
+🔊 AUDIO ROUTING: Sending TTS audio to target user {
+  "speakerUserId": "f5c28257-1657-4da3-9373-dd272be158ae",  ← French speaker
+  "targetUserId": "669b0dc0-e4ae-4223-9fc4-0db925f3a956",   ← Spanish user's Audio Connector
+  "targetConnectionId": "ad4f0401-9710",                    ← Spanish user's WebSocket
+  "routingRule": "speakerUserId !== targetUserId",
+  "feedbackPrevention": "✅ ACTIVE"
+}
+
+🔄 PIPELINE 5: TTS audio sent to user {
+  "speakerUserId": "f5c28257-1657-4da3-9373-dd272be158ae",  ← French speaker
+  "targetUserId": "669b0dc0-e4ae-4223-9fc4-0db925f3a956",   ← Spanish user receives TTS
+  "method": "Audio Connector",
+  "note": "Audio feedback prevention: NOT sent back to speaker"
+}
+```
+
+#### **Spanish User speaks → TTS sent to French User's Audio Connector:**
+
+```log
+🔊 AUDIO ROUTING: Sending TTS audio to target user {
+  "speakerUserId": "669b0dc0-e4ae-4223-9fc4-0db925f3a956",  ← Spanish speaker
+  "targetUserId": "f5c28257-1657-4da3-9373-dd272be158ae",   ← French user's Audio Connector
+  "routingRule": "speakerUserId !== targetUserId",
+  "feedbackPrevention": "✅ ACTIVE"
+}
+```
+
+#### **Key Log Fields for TTS Routing:**
+
+- `speakerUserId`: Who spoke the original text
+- `targetUserId`: Whose Audio Connector receives the TTS audio
+- `targetConnectionId`: The WebSocket connection ID for delivery
+- `feedbackPrevention`: Confirms TTS is NOT sent back to speaker
+- `routingRule`: The logic used (`speakerUserId !== targetUserId`)
+
+### **Q3: How do I know if the "mailbox architecture" is working correctly?**
+
+**Answer:** Look for these patterns in the logs:
+
+#### **✅ Correct Subscription Pattern:**
+
+- Each user subscribes to **ONLY their own** Audio Connector
+- Each user **SKIPS all other users'** Audio Connectors
+- Look for: `"isOwnAudioConnector": true` → Subscribe, `false` → Skip
+
+#### **✅ Correct TTS Routing Pattern:**
+
+- TTS audio is **NEVER sent to the speaker's own** Audio Connector
+- TTS audio is **ONLY sent to other users'** Audio Connectors
+- Look for: `"speakerUserId" !== "targetUserId"` in routing logs
+
+#### **✅ Feedback Prevention Working:**
+
+- Server logs show: `"feedbackPrevention": "✅ ACTIVE"`
+- Server logs show: `"note": "Audio feedback prevention: NOT sent back to speaker"`
+
+### **Q4: What if I see subscription errors or unexpected behavior?**
+
+**Common Issues & Solutions:**
+
+#### **🔍 Issue: User subscribes to wrong Audio Connector**
+
+```log
+❌ BAD: [userA]: ✅ SUBSCRIBING TO OTHER USER'S AUDIO CONNECTOR
+```
+
+**Solution:** Check `audioConnectorOwner` vs `currentUserId` in token data. Should only subscribe when they match.
+
+#### **🔍 Issue: TTS sent to wrong user**
+
+```log
+❌ BAD: "speakerUserId": "userA", "targetUserId": "userA"  ← Same user!
+```
+
+**Solution:** Check translation logic - should never send TTS back to speaker.
+
+#### **🔍 Issue: No subscription happening**
+
+```log
+❌ BAD: "decision": "Not an Audio Connector - will handle as regular participant stream"
+```
+
+**Solution:** Check Audio Connector detection - look for `hasAudio: true, hasVideo: false, empty name` in stream properties.
+
+### **Q5: How do I trace a complete translation from start to finish?**
+
+**Answer:** Follow these log patterns in chronological order:
+
+#### **Step 1: User Speaks (Server)**
+
+```log
+📝 Final transcript: "Combien d'argent veux-tu" (confidence: 0.9996745)
+🔄 PIPELINE 2: Processing complete sentence from user
+```
+
+#### **Step 2: Translation Processing (Server)**
+
+```log
+🔄 PIPELINE 3: Translation completed (fr → es): "Cuanto dinero quieres"
+🔄 PIPELINE 4-TTS: Voice model selected for TTS (aura-2-celeste-es)
+🔄 PIPELINE 4: TTS generated for user
+```
+
+#### **Step 3: Audio Routing Decision (Server)**
+
+```log
+🔊 AUDIO ROUTING: Sending TTS audio to target user {
+  "speakerUserId": "userA", "targetUserId": "userB"
+}
+```
+
+#### **Step 4: Audio Transmission (Server)**
+
+```log
+🔄 PIPELINE 5: Sending 62.5KB audio to video session
+✅ Audio transmission completed: 100 chunks sent
+🔄 PIPELINE 5: TTS audio sent to user
+```
+
+#### **Step 5: Client Receives Translation (Client)**
+
+```log
+📱 CLIENT LOG [targetUser]: Message received: {
+  "type": "transcription", "translatedText": "Cuanto dinero quieres"
+}
+```
+
+**Pro Tip:** Use timestamps to correlate server and client logs for the same translation event!
+
 ## **Development**
 
 ## **Audio Connector UI Management**
