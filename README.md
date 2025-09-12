@@ -23,14 +23,16 @@ Vonage Video Application with real-time speech translation powered by Vonage Vid
 📝 Final transcript: "Combien d'argent veux-tu" (confidence: 0.9996745)
 🔄 PIPELINE 2: Processing complete sentence from user1
 🔄 PIPELINE 3: Translation completed (fr → es): "Cuanto dinero quieres"
-🔄 PIPELINE 4: TTS generated with Spanish voice (aura-2-celeste-es)
+🔄 PIPELINE 4-TTS: Voice model selected for TTS (aura-2-celeste-es)
+🔄 PIPELINE 4: TTS generated for user (voiceModel: "aura-2-celeste-es", language: "es")
 🔊 AUDIO ROUTING: Sending TTS audio to User2 (feedbackPrevention: "✅ ACTIVE")
+🔄 PIPELINE 5: Sending 62.5KB audio to video session
+✅ PIPELINE 5: TTS audio sent to user (method: "Audio Connector")
 ✅ Audio transmission completed: 108 chunks sent
 ```
 
 **Results:**
 
-- ✅ **User1 hears:** Nothing (prevents feedback)
 - ✅ **User2 hears:** Spanish audio "Cuanto dinero quieres"
 - ✅ **UI Display:** "You (fr→original) -> 12:52 PM : Combien d'argent veux-tu"
 
@@ -43,24 +45,24 @@ Vonage Video Application with real-time speech translation powered by Vonage Vid
 📝 Final transcript: "Dame mucho dinero." (confidence: 0.85546875)
 🔄 PIPELINE 2: Processing complete sentence from user2
 🔄 PIPELINE 3: Translation completed (es → fr): "Donnez-moi beaucoup d'argent."
-🔄 PIPELINE 4: TTS generated with English voice (aura-2-asteria-en) *French text, English accent
+🔄 PIPELINE 4-TTS: Voice model selected for TTS (aura-2-asteria-en) *French text, English accent
+🔄 PIPELINE 4: TTS generated for user (voiceModel: "aura-2-asteria-en", language: "fr")
 🔊 AUDIO ROUTING: Sending TTS audio to User1 (feedbackPrevention: "✅ ACTIVE")
+🔄 PIPELINE 5: Sending 60.0KB audio to video session
+✅ PIPELINE 5: TTS audio sent to user (method: "Audio Connector")
 ✅ Audio transmission completed: 160 chunks sent
 ```
 
 **Results:**
 
-- ✅ **User2 hears:** Nothing (prevents feedback)
 - ✅ **User1 hears:** French audio "Donnez-moi beaucoup d'argent" (English accent due to Deepgram TTS limitations)
 - ✅ **UI Display:** "Connection dcdb817b... (es→fr) -> 12:52 PM : Donnez-moi beaucoup d'argent."
 
 ### **Key Behaviors Demonstrated:**
 
-1. **Perfect Feedback Prevention:** Users never hear their own translated audio
-2. **Language-Aware STT:** Each user gets optimized transcription in their language
-3. **Bidirectional Translation:** Both directions work seamlessly (fr↔es)
-4. **Voice Limitations:** Spanish gets native voice, French gets English voice (Deepgram limitation)
-5. **Real-Time Processing:** ~2-3 second end-to-end latency including translation
+1. **Language-Aware STT:** Each user gets transcription in their language
+2. **Bidirectional Translation:** Both directions work independently (fr↔es)
+3. **Voice Limitations:** Spanish gets native voice, French gets English voice (Deepgram limitation)
 
 ## Complete Pipeline Flow
 
@@ -72,43 +74,6 @@ Vonage Video Application with real-time speech translation powered by Vonage Vid
 6. **TTS Generation:** Deepgram TTS generates audio (Spanish native voice or English fallback)
 7. **Audio Delivery:** TTS audio sent to target User B's Audio Connector (NOT back to speaker User A)
 
-## **Table of Contents**
-
-### **Getting Started**
-
-- [Features](#features)
-- [Architecture Overview](#architecture-overview)
-- [Prerequisites](#prerequisites)
-- [Quick Start](#quick-start)
-- [Run a Demo](#run-a-demo)
-
-### **Language & Translation**
-
-- [Supported Languages](#supported-languages)
-- [Language-Aware STT Configuration](#language-aware-stt-configuration)
-
-### **Technical Documentation**
-
-- [Complete Frontend/Backend Flow Documentation](#complete-frontendbackend-flow-documentation)
-- [ConnectionId Flow & Audio Connector Subscription Logic](#connectionid-flow--audio-connector-subscription-logic)
-- [System Requirements & Testing](#system-requirements--testing)
-- [API Endpoints](#api-endpoints)
-- [Logging & Monitoring](#logging--monitoring)
-
-### **Development & Architecture**
-
-- [Development](#️development)
-- [Audio Connector UI Management](#audio-connector-ui-management)
-- [Long Sentence Detection & Utterance Optimization](#long-sentence-detection--utterance-optimization)
-
-### **Production & Maintenance**
-
-- [Refactoring Changelog](#refactoring-improvements)
-
-### **Resources**
-
-- [Related Documentation](#related-documentation)
-
 ---
 
 ## **Features**
@@ -118,21 +83,6 @@ Vonage Video Application with real-time speech translation powered by Vonage Vid
 - **Per-User Audio Connectors**: Individual audio processing for each participant
 - **Language Preference Management**: Persistent user language settings with dynamic STT reconfiguration
 - **Logging**: Complete pipeline monitoring with language-specific debugging
-
-## **Architecture Overview**
-
-```text
-User 1 (Language A) ←→ Audio Connector 1 ←→ Language-Aware STT→Translation→TTS ←→ User 2 (Language B)
-User 2 (Language B) ←→ Audio Connector 2 ←→ Language-Aware STT→Translation→TTS ←→ User 1 (Language A)
-```
-
-### **Enhanced Multi-User Pipeline Flow:**
-
-1. **Individual Audio Capture**: Each user has dedicated Audio Connector
-2. **Language-Aware STT**: User audio → Deepgram STT (user's preferred language) → Transcribed text
-3. **Smart Translation**: Source text → Google Translate (with language hints) → Target text
-4. **TTS with Voice Limitations**: Translated text → Deepgram TTS (limited voice accent) → Audio stream
-5. **Bidirectional Playback**: Audio stream → Target user's Audio Connector
 
 ### **Important: Deepgram TTS Voice Limitations**
 
@@ -155,7 +105,6 @@ This is a **Deepgram limitation**, not a system bug. Text translation is perfect
 - **Dynamic STT Configuration**: Uses user's language preference (e.g., `fr`, `es`, `de`) instead of generic `multi`
 - **Source Language Hints**: Translation accuracy improved by using speaker's language as source hint
 - **Fallback Strategy**: Gracefully falls back to multi-language detection when users haven't selected a language preference
-- **Reconnection Management**: Audio Connector can reconnect when user changes language preference
 
 ## **Supported Languages**
 
@@ -187,46 +136,6 @@ Tamil
 - **Smart Translation**: Uses speaker's language preference as source hint for improved accuracy
 - **Nova-2 STT Languages**: All 24 supported languages get optimized STT processing with language-specific configuration
 - **Multi-Language Fallback**: Unknown/unselected languages use multi-language detection with auto-translation
-- **Language Codes**: `en`, `es`, `fr`, `de`, `it`, `pt`, `ja`, `ko`, `zh`, `ru`, `hi`, `nl`, `da`, `sv`, `no`, `pl`, `fi`, `cs`, `bg`, `ca`, `et`, `uk`, `tr`, `ta`
-
-### **📊 Complete Language Support Matrix**
-
-| Language       | STT Quality        | Translation | TTS Voice         | User Experience                  |
-| -------------- | ------------------ | ----------- | ----------------- | -------------------------------- |
-| **English**    | ✅ Native `en-US`  | ✅ Perfect  | ✅ English accent | **Perfect**                      |
-| **Spanish**    | ✅ Native `es`     | ✅ Perfect  | ✅ Spanish accent | **Perfect**                      |
-| **French**     | ✅ Native `fr`     | ✅ Perfect  | ❌ English accent | **French text, English accent**  |
-| **German**     | ✅ Native `de`     | ✅ Perfect  | ❌ English accent | **German text, English accent**  |
-| **Chinese**    | ✅ Native `zh-CN`  | ✅ Perfect  | ❌ English accent | **Chinese text, English accent** |
-| **All Others** | ✅ Native or Multi | ✅ Perfect  | ❌ English accent | **Native text, English accent**  |
-
-**Key Takeaway**: Translation accuracy is perfect for all languages. Voice accent limitations only affect audio playback experience.
-
-### **Voice Model Configuration & Limitations**
-
-The system uses Deepgram Aura-2 voice models with **significant language limitations**:
-
-**Available TTS Voices:**
-
-- **English TTS**: `aura-2-asteria-en` (Clear, confident, energetic female voice)
-- **Spanish TTS**: `aura-2-celeste-es` (Clear, energetic Colombian female voice)
-
-**TTS Fallback Limitation:**
-
-- **All other languages** (French, German, Chinese, etc.) use English TTS voice
-- **Translation is accurate**, but voice accent is not native
-- **Example**: French user receives correct French text spoken with English accent
-
-**Real User Experience:**
-
-```
-French user says: "Bonjour comment allez-vous?"
-German user receives:
-  ✅ Perfect translation: "Hallo, wie geht es dir?"
-  ❌ English voice accent: Sounds like English person reading German
-```
-
-This is a **Deepgram TTS limitation**. For native voice accents in 40+ languages, consider Google Cloud TTS or Microsoft Azure (see Provider Comparison section below).
 
 **Documentation Reference:**
 
@@ -324,6 +233,21 @@ cd nodejs-video-audioconnector-two-way-deepgram-google-translate
 npm install
 ```
 
+### **Project Structure**
+
+```text
+├── video-chat-server.js   # Main application server
+├── update-env.js          # Development setup with ngrok
+├── package.json           # Dependencies (cleaned & optimized)
+├── views/
+│   ├── index.ejs         # Main video chat interface
+│   ├── js/client.js      # Client-side video handling
+│   └── css/style.css     # Application styling
+├── private.key           # Vonage private key (not in repo)
+├── .env                  # Environment variables (not in repo)
+└── README.md            # This file
+```
+
 ### **2. Environment Configuration**
 
 Copy the sample environment file and configure:
@@ -332,14 +256,11 @@ Copy the sample environment file and configure:
 cp .env.samp .env
 ```
 
-Edit `.env` with your credentials:
+Edit `.env` by updating `APP_ID` and `DEEPGRAM_API_KEY` with your credentials:
 
 ```env
 APP_ID=your_vonage_application_id
-PORT=3002
 DEEPGRAM_API_KEY=your_deepgram_api_key
-WEBSOCKET_SERVER_URI=wss://your-domain.com
-NODE_ENV=development
 ```
 
 ### **3. Private Key Setup**
@@ -358,24 +279,17 @@ For easy development with tunneling:
 node update-env.js
 ```
 
-### **5. Manual Start (other way)**
+The script `update-env.js` runs:
 
-```bash
-# Start ngrok server on port 3002
-ngrok http 3002
-
-# Update .env with NGROK_URL using wss://
-WEBSOCKET_SERVER_URI=wss://NGROK_URL
-
-# Start the server manually
-node video-chat-server.js
-```
+1. Starts ngrok server on port 3002
+2. Updates `.env` WEBSOCKET_SERVER_URI with NGROK_URL
+3. Then starts the server `video-chat-server.js`
 
 ## **Run a Demo**
 
 ### Translation requires 2+ users with different language preferences
 
-1. Navigate to `http://localhost:3002` (or your public ngrok url: http://NGROK_URL)
+1. Navigate to your public ngrok url: http://NGROK_URL (or `http://localhost:3002`).
 2. A new video session will be created automatically
 3. Copy the join link to invite 2nd participant to use it on different device.
 4. **Set Language Preferences**: Each user selects their preferred language (English/Spanish/etc.)
@@ -386,15 +300,6 @@ node video-chat-server.js
    - **TTS**: Generates audio using available voice (English/Spanish only)
    - **Audio Delivery**: Plays translated speech via Audio Connectors
    - **UI Display**: Shows real-time transcriptions with speaker identification
-
-### **Language Pipeline Examples**
-
-### **Important: Translation Logic**
-
-- **Single User**: No translation occurs (only transcription)
-- **Same Language Users**: No translation occurs (transcription only)
-- **Different Language Users**: Full translation pipeline activates
-- **Example**: User A (English) + User B (Spanish) = Bidirectional translation
 
 ### **Multi-User Session Management**
 
@@ -838,7 +743,7 @@ if (sessionUsers.get(sessionId).size === 0) {
 
 ---
 
-### **📊 Data Flow Summary**
+### **Data Flow Summary**
 
 **Key Data Structures Maintained:**
 
@@ -882,26 +787,182 @@ if (sessionUsers.get(sessionId).size === 0) {
    }
    ```
 
-**Request Flow Types:**
+## **Audio Connector Architecture & Subscription Logic**
 
-- **HTTP Requests:** Session creation, Audio Connector initialization
-- **WebSocket Messages:** Language preferences, cleanup requests
-- **Vonage Events:** Video session events, Audio Connector audio streams
-- **Deepgram Streams:** STT transcripts, TTS audio generation
+### **Core Concept: "Translation Mailbox" Architecture**
 
-This complete flow documentation provides the foundation for implementing the same architecture in any frontend framework while maintaining the same backend API structure.
+Each user has **their own dedicated Audio Connector** that acts as a "translation inbox" - it receives TTS audio when OTHER users speak. Users ONLY subscribe to their own Audio Connector to receive translations from others.
 
-## **ConnectionId Flow & Audio Connector Subscription Logic**
+### **The Mailbox Analogy**
 
-### **Overview: ConnectionId as User Identity**
+```text
+Think of Audio Connectors like personal mailboxes:
 
-The system uses **Vonage connectionId** as the primary user identifier throughout the entire pipeline. This connectionId uniquely identifies each user's session connection and serves as the bridge between web clients and Audio Connectors.
+UserA (French)    UserB (Spanish)
+     │                 │
+┌────▼────┐       ┌────▼────┐
+│ Mailbox │       │ Mailbox │
+│    A    │       │    B    │
+└─────────┘       └─────────┘
+     ▲                 ▲
+     │                 │
+UserA only checks    UserB only checks
+Mailbox A for        Mailbox B for
+translations         translations
+```
 
-### **🔄 Complete ConnectionId Pipeline Flow**
+**Audio Flow:**
+
+- UserA speaks French → Server translates to Spanish → Server delivers to UserB's mailbox → UserB hears Spanish
+- UserB speaks Spanish → Server translates to French → Server delivers to UserA's mailbox → UserA hears French
+
+### **Real Client-Side Subscription Logic**
+
+**File:** `views/js/client.js` - The critical decision-making code:
+
+```javascript
+session.on("streamCreated", function (event) {
+  const stream = event.stream;
+
+  // Parse Audio Connector ownership from stream token
+  const streamMeta = JSON.parse(stream.connection.data);
+  const audioConnectorOwner = streamMeta.userId;
+  const currentUserId = session.connection.connectionId;
+
+  // CRITICAL ARCHITECTURE DECISION:
+  const isOwnAudioConnector = audioConnectorOwner === currentUserId;
+
+  if (isAudioConnector) {
+    if (!isOwnAudioConnector) {
+      // Skip OTHER users' Audio Connectors
+      console.log(
+        "🏗️ AUDIO ARCHITECTURE: Skipping OTHER user's Audio Connector - we only subscribe to our own",
+        {
+          ourUserId: currentUserId,
+          streamOwner: audioConnectorOwner,
+          reason:
+            "Each user only subscribes to their own Audio Connector to receive translations",
+        }
+      );
+      return; // EXIT - Do not subscribe
+    }
+
+    // Subscribe to OWN Audio Connector
+    console.log(
+      "✅ SUBSCRIBING TO OWN AUDIO CONNECTOR: Receive translations from other users",
+      {
+        purpose:
+          "Our Audio Connector receives TTS audio when other users speak in different languages",
+      }
+    );
+
+    // Create hidden container for audio-only subscription
+    const hiddenContainer = document.createElement("div");
+    session.subscribe(stream, hiddenContainer, {
+      subscribeToVideo: false,
+      subscribeToAudio: true,
+    });
+  }
+});
+```
+
+### **Subscription Summary**
+
+**Translation Delivery:**
+
+- UserA speaks French → Server sends Spanish TTS to **UserB's Audio Connector** → UserB hears it
+- UserB speaks Spanish → Server sends French TTS to **UserA's Audio Connector** → UserA hears it
+
+### **🔧 Server-Side Routing Logic**
+
+**File:** `video-chat-server.js` - How server delivers TTS to the correct mailbox:
+
+```javascript
+// TTS delivery logic - route to target user's Audio Connector
+async function sendTTSToUser(speakerUserId, targetUserId, ttsAudio) {
+  const targetUser = sessionUsers.get(sessionId).get(targetUserId);
+
+  // Critical: Send to target user's Audio Connector, NOT speaker's
+  if (
+    targetUser.websocket.readyState === WebSocket.OPEN &&
+    targetUserId !== speakerUserId
+  ) {
+    console.log("🔊 AUDIO ROUTING: Sending TTS audio to target user", {
+      speakerUserId: speakerUserId,
+      targetUserId: targetUserId,
+      routingRule: "speakerUserId !== targetUserId",
+      feedbackPrevention: "✅ ACTIVE",
+    });
+
+    await playback_to_websocket(targetUser.websocket, ttsAudio);
+  }
+}
+```
+
+## **Audio Connector API Limitations**
+
+### **Name Parameter Not Supported**
+
+During development, we investigated whether custom `name` parameters could be set when creating Audio Connector streams to improve identification reliability. During the time of writing this, the documentation confirms that the `name` parameter is NOT supported for Audio Connector WebSocket connections.
+
+**Available Audio Connector Parameters:**
+
+```javascript
+videoClient.connectToWebsocket(sessionId, token, {
+  uri: websocketURI,
+  headers: customHeaders,
+  audioRate: 16000,
+  bidirectional: true
+});
+
+// ❌ NOT SUPPORTED: Custom stream properties
+{
+  name: "audio_connector_user1",     // ❌ INVALID - name does not exist
+
+}
+```
+
+**Documentation Reference:**  
+[Official Audio Connector Guide](https://tokbox.com/developer/guides/audio-connector) - No `name` parameter mentioned in any connectToWebsocket examples.
+
+#### **Reliable Detection Alternative**
+
+Since custom naming isn't supported, the system uses **defensive dual-method detection**:
+
+```javascript
+// Method 1: Token-based detection (Primary - Reliable)
+const streamMeta = JSON.parse(stream.connection.data);
+const isAudioConnectorByToken = streamMeta.type === "audio_connector";
+
+// Method 2: Property-based detection (Fallback - Defensive)
+const isAudioConnectorByProps =
+  stream.hasAudio === true &&
+  stream.hasVideo === false &&
+  (!stream.name || stream.name.trim() === "") &&
+  stream.videoType === undefined;
+
+// Use token data when available, fallback to properties
+const isAudioConnector = tokenDataAvailable
+  ? isAudioConnectorByToken
+  : isAudioConnectorByProps;
+```
+
+**Why This Approach Works:**
+
+- **Token metadata** provides reliable identification via `stream.connection.data`
+- **Property detection** handles edge cases when token data isn't available
+- **Empty name** is `undefined` for server-created Audio Connector streams
+- **Regular video streams** have `name: "Publisher"` from client-side publisher options
+
+This defensive approach ensures robust Audio Connector detection without relying on unsupported API features.
+
+### **ConnectionId as User Identity**
+
+The system uses **Vonage connectionId** as the primary user identifier throughout the entire pipeline:
 
 #### **1. Web Client Connection & ConnectionId Generation**
 
-**File:** `views/js/client.js` (lines 50-60)
+**File:** `views/js/client.js`
 
 ```javascript
 // User opens browser and connects to video session
@@ -935,7 +996,7 @@ $.ajax({
 });
 ```
 
-**File:** `video-chat-server.js` (lines 345-400)
+**File:** `video-chat-server.js`
 
 ```javascript
 // Per-user Audio Connector endpoint
@@ -968,7 +1029,7 @@ app.get("/:sessionId/audioconnect/:userId", async function (req, res) {
 
 #### **3. WebSocket Connection & User Tracking**
 
-**File:** `video-chat-server.js` (lines 615-630)
+**File:** `video-chat-server.js`
 
 ```javascript
 // WebSocket connection handler
@@ -993,6 +1054,9 @@ wsServer.on("connection", (websocket, request) => {
 When Audio Connector connects to video session, it creates a stream with the embedded token data:
 
 ```javascript
+// Audio Connector stream includes connectionId in stream.connection.data
+stream.connection.data;
+
 // Audio Connector stream includes connectionId in stream.connection.data
 stream.connection.data = JSON.stringify({
   userId: "2_MX4xMDB...", // Original connectionId
@@ -1043,27 +1107,6 @@ session.on("streamCreated", function (event) {
     });
   }
 });
-```
-
-#### **6. Audio Feedback Prevention**
-
-The connectionId system prevents audio feedback loops:
-
-```javascript
-// Server-side TTS delivery (video-chat-server.js lines 1200-1220)
-if (
-  user.websocket.readyState === user.websocket.OPEN &&
-  user.userId !== speakerUserId
-) {
-  // Don't send to speaker's own Audio Connector
-  await playback_to_websocket(user.websocket, stream);
-  console.log(
-    "TTS sent to user:",
-    user.userId,
-    "NOT to speaker:",
-    speakerUserId
-  );
-}
 ```
 
 ### **ConnectionId Security & Isolation**
@@ -1135,7 +1178,7 @@ function setUserLanguage(sessionId, userId, language) {
 5. **Language Tracking**: User language preferences associated with connectionId
 6. **Subscription Logic**: Client can distinguish own vs. other users' Audio Connectors
 
-### **📋 ConnectionId Debugging Guide**
+### **ConnectionId Debugging Guide**
 
 ```javascript
 // Frontend debugging (views/js/client.js)
@@ -1161,7 +1204,7 @@ This connectionId architecture ensures secure, isolated per-user translation pro
 
 ### **System Requirements & Testing**
 
-### **⚠️ Important: Same-Device Testing Limitation**
+### **Important: Same-Device Testing Limitation**
 
 **For Development Testing**: Using multiple browser tabs on the same device will create audio feedback loops because:
 
@@ -1174,41 +1217,6 @@ This connectionId architecture ensures secure, isolated per-user translation pro
 1. **Recommended**: Test with separate physical devices (phone + computer)
 2. **Alternative**: Use headphones and manually mute when not speaking
 3. **Development**: Accept feedback loops as testing artifact (system works correctly in production)
-
-### **✅ Real Test Results: Single-User vs Multi-User**
-
-#### **Single-User Testing Results (Expected Behavior)**
-
-**Expected Behavior**: When testing with only **one user**, you will **NOT hear any translation audio**. This is the correct behavior!
-
-**Why No Translation with Single User:**
-
-- **Transcription**: ✅ Works perfectly (both English and Spanish speech transcribed)
-- **Translation**: ❌ Skipped (no other users with different language preferences)
-- **TTS Audio**: ❌ Not generated (no translation targets)
-
-**Actual Log Evidence:**
-
-```log
-[2025-09-10T18:51:15.877Z] ℹ️  🔍 DEBUG: getOtherUsersInSession result {
-  "sessionId": "1_MX5kYzJhM2U5Zi1mMGU2LTQ1NTUtYmMxZC0zZDQ0NmU2MmRiZDl-fjE3NTc1MzAyNTkwMzB-dnNKaTc4NVplQUt5QUJjdVpoMTZHYnVNfn5-",
-  "speakerUserId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
-  "foundUsers": 0,           // ← No other users to translate for
-  "userLanguages": []
-}
-
-[2025-09-10T18:52:30.608Z] ⚠️  🚫 TRANSLATION: No other users found to receive translations {
-  "sessionId": "1_MX5...",
-  "speakerUserId": "26f1b0fe-a3b9-45d3-916f-f9eed6da8f73",
-  "transcript": "Combien d'argent veux-tu...",
-  "possibleReasons": [
-    "Only one user in session",
-    "Other users haven't set language preferences",
-    "Other users are inactive",
-    "Session tracking issue"
-  ]
-}
-```
 
 #### **Multi-User Testing Results (Full Translation Pipeline)**
 
@@ -1322,182 +1330,19 @@ This connectionId architecture ensures secure, isolated per-user translation pro
 - 🔍 **Cross-Talk Detection**: Low confidence scores indicate garbled audio
 - 💡 **Solution**: Use headphones or separate devices to eliminate cross-talk
 
-**Client Log Evidence:**
-
-```text
-Transcription Log:
-You (fr→original) -> 12:52 PM : Combien d'argent veux-tu
-Connection dcdb817b... (es→original) -> 12:52 PM : Dame mucho dinero.
-Connection dcdb817b... (es→fr) -> 12:52 PM : Donnez-moi beaucoup d'argent.
-Connection dcdb817b... (es→original) -> 12:52 PM : Donis Mois. Bokú, targett.  ← Cross-talk
-```
-
-**Key Insight**: The garbled transcription "Donis Mois. Bokú, targett" is French audio being processed by Spanish STT - proof that the system is working correctly, but there's microphone bleed between devices.
-
-### **Testing Scenarios Summary**
-
-| Scenario                 | Users | Languages         | Translation Expected | Audio Expected | Cross-Talk Risk |
-| ------------------------ | ----- | ----------------- | -------------------- | -------------- | --------------- |
-| **Single User**          | 1     | Any               | ❌ No                | ❌ No          | ❌ None         |
-| **Same Language**        | 2+    | Both English      | ❌ No                | ❌ No          | ❌ None         |
-| **Different Languages**  | 2+    | English + Spanish | ✅ Yes               | ✅ Yes         | ❌ None         |
-| **Same Device (tabs)**   | 2+    | Different         | ✅ Yes               | ⚠️ Cross-talk  | ⚠️ High         |
-| **Separate Devices**     | 2+    | Different         | ✅ Yes               | ✅ Yes         | ✅ Minimal      |
-| **Headphones + Devices** | 2+    | Different         | ✅ Yes               | ✅ Yes         | ✅ None         |
-
-### **🎯 Test Results Conclusion**
-
-**Your System is Working Perfectly!** 🎉
-
-The enhanced debugging logs prove that:
-
-1. **✅ Audio Feedback Prevention**: Users never hear their own translations
-2. **✅ Language-Aware STT**: Each user gets optimized transcription in their language
-3. **✅ Bidirectional Translation**: Both French→Spanish and Spanish→French work flawlessly
-4. **✅ Session Management**: Multi-user tracking works correctly
-5. **✅ Audio Routing**: TTS audio goes only to intended recipients
-6. **✅ Resource Efficiency**: System conserves resources when translation isn't needed
-
-**The "Echo" You Observed**: This was normal **microphone cross-talk** (hardware limitation), not a system bug:
-
-- French TTS plays to User1 → User2's microphone picks it up → Spanish STT tries to transcribe French → Creates garbled text
-- **Solution**: Use headphones or separate rooms to eliminate cross-talk
-- **Evidence**: Low confidence scores (0.48, 0.56) indicate cross-talk detection
-
-**Expected Behavior Summary**:
-
-- 🔇 **Speaker**: Hears nothing from their own speech (prevents feedback)
-- 🔊 **Listener**: Hears perfect translation in their preferred language
-- 📝 **UI**: Shows real-time transcriptions for both original and translated text
-
-## **API Endpoints**
-
-| Endpoint                   | Method | Description                   |
-| -------------------------- | ------ | ----------------------------- |
-| `/`                        | GET    | Create new video session      |
-| `/:sessionId`              | GET    | Join existing session         |
-| `/:sessionId/join`         | GET    | Alternative join route        |
-| `/:sessionId/token`        | GET    | Generate authentication token |
-| `/:sessionId/streams`      | GET    | Get stream information        |
-| `/:sessionId/audioconnect` | GET    | Initialize Audio Connector    |
-
 ## **Logging & Monitoring**
 
 The application provides **dual-layer comprehensive logging** with both server-side and client-side capture:
 
-### **🔧 Server-Side Logging**
+### **Server-Side and Client-Side Logging**
 
-Server logs are written to `server-logs-YYYY-MM-DD.log` with categorized entries:
-
-- **ℹ️ Info**: General application information
-- **✅ Success**: Successful operations
-- **⚠️ Warning**: Warnings and non-critical issues
-- **❌ Error**: Error conditions
-- **🔄 Pipeline**: STT→Translation→TTS pipeline steps
-- **🔊 Audio**: Audio processing metrics
-
-### **📱 Client-Side Logging (NEW)**
-
-**Client logs are automatically captured from browser console and written to `client-logs-YYYY-MM-DD.log`**
-
-**Features:**
-
-- **✅ Dual Output**: All console logs appear in browser AND server log file
-- **✅ Real-time Capture**: Automatically captures console.log, console.error, console.warn, console.info
-- **✅ User Identification**: Each log entry tagged with user's connectionId
-- **✅ WebSocket Transport**: Uses existing WebSocket connection for efficiency
-- **✅ Buffering**: Logs are buffered until WebSocket connection is ready
-
-**Example Client Log Entries:**
-
-```log
-[2025-09-10T22:52:42.913Z] 📱 CLIENT LOG [f5c28257-1657-4da3-9373-dd272be158ae]: WebSocket connected with connectionId as userId: f5c28257-1657-4da3-9373-dd272be158ae
-[2025-09-10T22:53:37.007Z] 📱 CLIENT LOG [669b0dc0-e4ae-4223-9fc4-0db925f3a956]: ✅ SUBSCRIBING TO OWN AUDIO CONNECTOR: Receive translations from other users
-[2025-09-10T22:53:46.069Z] 📱 CLIENT LOG [f5c28257-1657-4da3-9373-dd272be158ae]: Received message: { "type": "transcription", "originalText": "Combien d'argent veux-tu", "translatedText": "Combien d'argent veux-tu" }
-```
-
-### **📊 Log File Management**
-
-**Automatic Log Creation:**
-
-- **Server logs**: `server-logs-2025-09-10.log`
-- **Client logs**: `client-logs-2025-09-10.log`
-- **Daily rotation**: New files created each day
-- **Git ignored**: Log files excluded from version control
-
-**Log File Locations:**
-
-```bash
-# View real-time server logs
-tail -f server-logs-$(date +%Y-%m-%d).log
-
-# View real-time client logs
-tail -f client-logs-$(date +%Y-%m-%d).log
-
-# Search for specific user activity
-grep "f5c28257-1657" client-logs-$(date +%Y-%m-%d).log
-```
-
-### **🔍 Enhanced Debugging Capabilities**
-
-**Complete Visibility:**
+Server logs are written to `server-logs-YYYY-MM-DD.log` and Client logs are written to `client-logs-2025-09-10.log`.
 
 - **Server Side**: Pipeline processing, Audio Connector states, translation flow
 - **Client Side**: UI interactions, WebSocket messages, Audio Connector subscriptions, stream management
 - **Cross-Reference**: Match server and client events using timestamps and connectionIds
 
-**Real-World Debugging Example:**
-
-```bash
-# Problem: User not hearing translations
-# Step 1: Check if user subscribed to their Audio Connector
-grep "SUBSCRIBING TO OWN AUDIO CONNECTOR" client-logs-2025-09-10.log
-
-# Step 2: Check if translation was generated server-side
-grep "TTS audio sent to user" server-logs-2025-09-10.log
-
-# Step 3: Check if client received transcription message
-grep "Received message.*transcription" client-logs-2025-09-10.log
-```
-
-### **Sample Server Log Output**
-
-```log
-[2025-09-02T10:30:15.123Z] ✅ Audio Connector connected successfully {
-  "sessionId": "1_MX4xM...",
-  "connectionId": "ac_12345",
-  "audioRate": "16kHz",
-  "bidirectional": true
-}
-
-[2025-09-02T10:30:16.456Z] 🔄 PIPELINE 2: Speech-to-Text completed {
-  "transcript": "Hola, ¿cómo estás?",
-  "isFinal": true
-}
-
-[2025-09-02T10:30:16.789Z] 🔄 PIPELINE 3: Translation completed {
-  "originalText": "Hola, ¿cómo estás?",
-  "detectedLanguage": "es",
-  "translatedText": "Hello, how are you?"
-}
-```
-
 ## **Development**
-
-### **Project Structure**
-
-```text
-├── video-chat-server.js   # Main application server
-├── update-env.js          # Development setup with ngrok
-├── package.json           # Dependencies (cleaned & optimized)
-├── views/
-│   ├── index.ejs         # Main video chat interface
-│   ├── js/client.js      # Client-side video handling
-│   └── css/style.css     # Application styling
-├── private.key           # Vonage private key (not in repo)
-├── .env                  # Environment variables (not in repo)
-└── README.md            # This file
-```
 
 ## **Audio Connector UI Management**
 
@@ -1653,169 +1498,6 @@ dgConnection.on(LiveTranscriptionEvents.Transcript, (data) => {
 });
 ```
 
-#### **Monitoring & Debugging:**
-
-When testing long sentences, you'll now see logs like:
-
-```log
-[2025-09-03T17:00:00.123Z] 🎤 Speech started { timestamp: "12345" }
-[2025-09-03T17:00:01.456Z] 📝 Transcript received {
-  transcript: "I'm very happy about that you attended",
-  isFinal: true,
-  confidence: 0.95
-}
-[2025-09-03T17:00:01.789Z] 🗣️ Utterance ended {
-  duration: "1666ms",
-  trigger: "utterance_end_ms timeout"
-}
-```
-
-#### **Testing Guidelines:**
-
-1. **Speak naturally** with normal pauses and breathing
-2. **Monitor logs** for utterance timing and speaker detection
-3. **Adjust parameters** if needed:
-   - Increase `utterance_end_ms` for longer pauses (up to 3000ms)
-   - Increase `vad_turnoff` for more breathing room (up to 1500ms)
-   - Switch to `nova-3` if accuracy is more important than stability
-
-#### **Performance Impact:**
-
-- **Latency**: +500-1000ms per utterance (worth it for accuracy)
-- **Accuracy**: +25% improvement in long sentence detection
-- **Speaker Separation**: +40% reduction in false speaker splits
-- **Resource Usage**: Minimal increase due to optimized buffering
-
-This optimization ensures that natural speech patterns are preserved while maintaining real-time translation performance.
-
-### **"No Audio but Transcription Works"**
-
-- **Expected**: Single-user testing will transcribe but not translate
-- **Solution**: Test with 2 users on separate devices with different language preferences
-- **Logs to check**: Look for `"No other users found to receive translations"` (normal for single user)
-
-## **Related Documentation**
-
-- [Vonage Video API Docs](https://developer.vonage.com/en/video/overview)
-- [Deepgram API Docs](https://developers.deepgram.com/)
-- [Audio Connector Guide](https://developer.vonage.com/en/video/guides/audio-connector)
-- [Google Translate API](https://cloud.google.com/translate/docs)
-
-## **Refactoring Improvements**
-
-- **Dynamic Language Selection**: Deepgram STT now uses user's preferred language instead of generic "multi"
-- **Intelligent Fallback**: Graceful fallback to multi-language detection when users haven't selected a language preference
-- **Enhanced Accuracy**: Significant improvement in transcription quality for non-English languages
-- **Source Language Hints**: Google Translate now uses speaker's language preference instead of auto-detection
-- **Improved Accuracy**: Enhanced translation quality through explicit source language specification
-- **User Identification via SDK ConnectionId**: ConnectionId-based user identification and session tracking
-- **Language Preference UI**: Users select preferred language (10+ languages supported)
-- **Individual Audio Connectors**: Separate Audio Connector per user for isolated processing
-- **Smart Translation**: Only translates when users have different language preferences
-- **Multi-User Session Management**: Robust user preference and connection state tracking
-- **Real-Time Language Management**: Dynamic language preference updates and persistence
-
-### **Testing**
-
-- **Testing**: Same-device testing creates audio feedback (expected limitation)
-- **Testing**: Separate devices eliminate feedback automatically
-- **Testing**: Use phone + computer for realistic behavior validation
-
-**Documentation:**
-
-- [Deepgram TTS Models & Languages](https://developers.deepgram.com/docs/tts-models#voices-and-languages)
-- [Deepgram STT Language Support](https://developers.deepgram.com/docs/models-languages-overview)
-
-#### **WebSocket Replacement Pattern (Working)**
-
-The system uses an WebSocket replacement pattern in `addUserToSession()`:
-
-```javascript
-// Line 693 in video-chat-server.js
-addUserToSession(sessionId, userId, websocket.id, websocket);
-
-// This function UPDATES existing entries rather than creating duplicates
-// When Audio Connector connects, it replaces the web client WebSocket
-// while preserving the user's language preference
-```
-
-**Key Insight:** The `addUserToSession()` function replaces rather than duplicates entries for the same `userId`, enabling seamless transition from web client to Audio Connector connection while preserving language preferences.
-
-#### **🔐 Per-User Audio Connector Creation & Authentication**
-
-**Critical Architecture:** Each user creates their own dedicated Audio Connector, but receives translated audio through it:
-
-**Audio Flow Example:**
-
-```text
-User A (French) speaks "Bonjour"
-    ↓
-Audio Connector A captures → STT → Translation → TTS generates "Hello"
-    ↓
-Server sends "Hello" TTS audio TO User B's Audio Connector
-    ↓
-User B hears "Hello" through THEIR OWN Audio Connector
-(User A hears nothing - no feedback)
-```
-
-**Connection Security:** Users can only CREATE/CONNECT to their own Audio Connector:
-
-**1. User-Specific Audio Connector Creation:**
-
-```javascript
-// Each user gets a unique Audio Connector URL with their userId
-GET /:sessionId/audioconnect/:userId
-
-// Example: Only User A can CREATE their specific Audio Connector
-// User A (userId: abc123): /session1/audioconnect/abc123 ✅ ALLOWED to create
-// User B (userId: xyz789): /session1/audioconnect/abc123 ❌ BLOCKED from creating User A's
-```
-
-**2. Token-Based Authentication:**
-
-```javascript
-// Vonage generates user-specific tokens with embedded userId
-token = videoClient.generateClientToken(sessionId, {
-  data: JSON.stringify({
-    userId: userId, // Embedded user identification
-    type: "audio_connector",
-    role: "translator",
-  }),
-});
-
-// Only the matching userId can use this token to CREATE their Audio Connector
-```
-
-**3. WebSocket URL Isolation:**
-
-```javascript
-// Audio Connector WebSocket URLs include user identification
-wss://domain.com/?userId=abc123-def456-789
-
-// Server validates: incoming userId must match token userId
-// Prevents unauthorized Audio Connector creation
-```
-
-**4. Session Tracking Validation:**
-
-```javascript
-// Server validates each Audio Connector connection
-const userInfo = sessionUsers.get(sessionId)?.get(userId);
-if (!userInfo) {
-  // Reject unauthorized Audio Connector creation attempts
-  websocket.close(1008, "Unauthorized userId for this session");
-}
-```
-
-**Why This Prevents Unauthorized Audio Connector Creation:**
-
-- ✅ **URL Security:** Each Audio Connector creation URL is user-specific
-- ✅ **Token Validation:** Vonage tokens embed the authorized userId for creation
-- ✅ **Server Verification:** Backend validates userId matches session records
-- ✅ **Creation Isolation:** Users can only CREATE their own Audio Connector
-
-**Key Point:** Users can only CREATE their own Audio Connector, but they RECEIVE translated audio through their own Audio Connector from other users' speech.
-
 #### **Feedback Prevention (Working)**
 
 **The Challenge:** Without proper isolation, users would hear their own voice translated back to them, creating audio feedback loops.
@@ -1877,27 +1559,10 @@ token = videoClient.generateClientToken(sessionId, {
 // Allows client to distinguish "my Audio Connector" vs "other user's Audio Connector"
 ```
 
-**Feedback Prevention Flow Example:**
-
-```text
-User A (French) speaks "Bonjour"
-    ↓
-Audio Connector A captures audio → STT → Translation → TTS generates "Hello"
-    ↓
-Server routing logic:
-✅ Send "Hello" TTS to User B's Audio Connector (User B hears translation)
-❌ Do NOT send "Hello" TTS to User A's Audio Connector (prevents feedback)
-    ↓
-User A hears: NOTHING (no feedback)
-User B hears: "Hello" (successful translation)
-```
-
 **Why This Works:**
 
 - **Server Logic:** TTS only routed to different userIds
 - **Client Logic:** Users never subscribe to their own Audio Connector streams
-- **Stream Identification:** User tokens enable "self vs other" detection
-- **Isolation:** Each user only hears translations FROM other users, never their own
 
 #### **Log Evidence of Success**
 
@@ -1916,64 +1581,5 @@ User B hears: "Hello" (successful translation)
 [2025-09-04T22:04:07.227Z] ✅ Audio transmission completed: 120 chunks sent
 [2025-09-04T22:04:07.228Z] ℹ️ Transcription sent to user's web client {
   "text": "Où est-il maintenant?"
-}
-```
-
-### **Audio Feedback Loop Issues during development (SOLVED)**
-
-**Problem:** User speaks French, translation is generated correctly, but then user hears mixed-language transcripts like "Marcy you est, the autos" and duplicate translations.
-
-**Root Cause:** Audio feedback loop where:
-
-1. User A speaks → Translation generated for User B
-2. TTS audio sent to User B's Audio Connector
-3. TTS audio also sent back to User A's Audio Connector (causing feedback)
-4. User A's microphone picks up the TTS audio → Creates mixed-language STT
-
-**Symptoms:**
-
-- Duplicate translations appearing
-- Mixed-language transcripts (e.g., Spanish user getting "Marcy you est")
-- Audio cutting off mid-sentence
-- Strange concatenated words from different languages
-
-**Fixes Applied:**
-
-1. **Server-side Fix (video-chat-server.js):**
-
-```javascript
-// CRITICAL: Only send TTS to target user's Audio Connector, NOT back to speaker
-if (
-  user.websocket.readyState === user.websocket.OPEN &&
-  user.userId !== speakerUserId
-) {
-  await playback_to_websocket(user.websocket, stream);
-  // TTS only sent to OTHER users, prevents feedback
-}
-
-// Enhanced token generation with user identification
-token = videoClient.generateClientToken(sessionId, {
-  data: JSON.stringify({
-    userId: userId,
-    type: "audio_connector",
-    role: "translator",
-  }),
-});
-```
-
-1. **Client-side Fix (views/js/client.js):**
-
-```javascript
-// Extract user identification from stream connection data
-const connectionData = JSON.parse(stream.connection.data);
-const streamUserId = connectionData.userId;
-const currentUserId = window.currentSession?.connection?.connectionId;
-const isOwnAudioConnector = streamUserId === currentUserId;
-
-if (isOwnAudioConnector) {
-  console.log(
-    "Skipping subscription to own Audio Connector - prevents feedback loop"
-  );
-  return; // Don't subscribe to own Audio Connector
 }
 ```

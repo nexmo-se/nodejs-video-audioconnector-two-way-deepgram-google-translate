@@ -3,7 +3,6 @@ var apiKey = "";
 var sessionId = "";
 var token = "";
 var session = "";
-var stream_name = "video";
 
 // Audio Connector stream name for translated audio playback
 const AUDIO_CONNECTOR_STREAM_NAME = "translated_audio_connector";
@@ -16,10 +15,6 @@ window.currentPublisher = null;
 window.startSession = (sessionId, token, apiKey) => {
   const queryString = window.location.search;
   console.log(queryString);
-  const urlParams = new URLSearchParams(queryString);
-  if (urlParams.has("stream_name")) {
-    stream_name = urlParams.get("stream_name");
-  }
 
   var deferred = new $.Deferred();
 
@@ -29,7 +24,7 @@ window.startSession = (sessionId, token, apiKey) => {
     width: "100%",
     height: "100%",
     resolution: "640x480",
-    name: stream_name,
+    name: "Publisher",
   });
 
   // Log device changes for debugging
@@ -105,6 +100,9 @@ window.startSession = (sessionId, token, apiKey) => {
 
         // Enhanced fallback detection for Audio Connector streams
         // Audio Connector streams have: hasAudio=true, hasVideo=false, empty/missing name
+        // From the Vonage API documentation (in opentok.js line 22310):
+        // "The videoType is undefined when a stream is voice-only"
+        // regular camera streams have videoType: "camera".
         const isAudioConnectorByProps =
           stream.hasAudio === true &&
           stream.hasVideo === false &&
@@ -268,6 +266,7 @@ window.startSession = (sessionId, token, apiKey) => {
             resolution: "640x480",
             subscribeToAudio: true,
             subscribeToVideo: true,
+            name: "Subscriber",
           },
           (err) => {
             if (err) {

@@ -127,29 +127,38 @@
 </html>
 <script>
   /**
-   * REAL-TIME TRANSLATION VIDEO CHAT APPLICATION
+   * GLOBAL STATE TRACKING FOR DEEPGRAM TRANSLATION PIPELINE
    *
-   * This application provides:
-   * 1. Multi-party video chat using Vonage Video API
-   * 2. Real-time speech transcription and translation via Deepgram + Google Translate
-   * 3. Audio injection of translated speech back into the video session
+   * Purpose: UI state management and cleanup coordination for multi-user translation
    *
-   * ENHANCED: Multi-user architecture with per-user Audio Connectors
+   * Current Usage (simplified architecture):
+   * 1. UI STATE MANAGEMENT: Controls Start/Stop Deepgram button states and prevents
+   *    multiple simultaneous Audio Connector creations from same user
    *
-   * Key Components:
-   * - WebSocket connection for transcription results and control messages
-   * - Video session management (handled by client.js)
-   * - Per-user Audio Connector integration for isolated audio processing
+   * 2. CLEANUP COORDINATION: Ensures proper cleanup of Audio Connector resources
+   *    when user stops translation or leaves the session (beforeunload event)
+   *
+   * 3. DEBUGGING & LOGGING: Provides state visibility for troubleshooting
+   *    translation pipeline issues
+   *
+   * ARCHITECTURAL NOTE: Audio feedback prevention is now handled by design:
+   * - Users ALWAYS subscribe only to their OWN Audio Connector (receive translations)
+   * - Users NEVER subscribe to other users' Audio Connectors (prevent feedback)
+   * - This removed the need for aggressive deepgram_in_use subscription blocking
+   *   that was previously too restrictive
+   *
+   * Flow:
+   * - User clicks "Start Deepgram" → setDeepgramInUse(true) → Create Audio Connector
+   * - User clicks "Stop Deepgram" → setDeepgramInUse(false) → Cleanup Audio Connector
+   * - Page unload → Check deepgram_in_use → Send cleanup if needed
    */
-
-  // Global state tracking for Deepgram translation pipeline
   var deepgram_in_use = false;
-  window.deepgram_in_use = deepgram_in_use; // Make globally accessible
+  window.deepgram_in_use = deepgram_in_use; // Make globally accessible for client.js
 
   function setDeepgramInUse(value) {
     deepgram_in_use = value;
-    window.deepgram_in_use = value; // Keep window property in sync
-    console.log(`Deepgram in use set to: ${value}`);
+    window.deepgram_in_use = value; // Keep window property in sync for cross-module access
+    console.log(`🔄 Deepgram pipeline state changed to: ${value}`);
   }
 
   // User ID will be set to the publisher's connectionId once video session is established
@@ -651,6 +660,7 @@
   });
 
   // Enhanced cleanup on page unload for multi-user architecture
+  // If user closes tab/browser (without clicking Stop), ensure Audio Connector is cleaned up
   window.addEventListener("beforeunload", function (e) {
     if (deepgram_in_use && ws && ws.readyState === WebSocket.OPEN && userId) {
       // Send cleanup message for this specific connectionId

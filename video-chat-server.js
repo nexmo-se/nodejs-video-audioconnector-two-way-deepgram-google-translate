@@ -1,35 +1,8 @@
-/**
- * Real-Time Video Chat with Multi-Language Translation
- *
- * This application provides a video chat platform with real-time speech translation
- * featuring language-aware STT configuration and intelligent translation.
- *
- * ENHANCED ARCHITECTURE OVERVIEW:
- * 1. Vonage Video API - Handles video/audio streaming between participants
- * 2. Per-User Audio Connectors - Captures audio from individual users
- * 3. Language-Aware Deepgram STT - User-specific language configuration for optimal accuracy
- * 4. Smart Google Translate - Source language hints and improved translation accuracy
- * 5. Deepgram TTS - Converts translated text back to speech with language-specific voices
- * 6. WebSocket - Streams translated audio back to participants with multi-user support
- *
- * ENHANCED PIPELINE FLOW:
- * User Audio → Language-Aware STT → Smart Translation → Language-Specific TTS → Target User
- *
- * KEY IMPROVEMENTS:
- * - Dynamic STT language configuration based on user preferences
- * - Source language hints for better translation accuracy
- * - Fallback strategies for unknown languages
- * - Enhanced logging with language-specific debugging
- */
-
-// Load environment variables from .env file
 require("dotenv").config();
-
-// Express.js web framework and middleware imports
 var express = require("express");
-var cors = require("cors"); // Cross-Origin Resource Sharing
-var path = require("path"); // File path utilities
-var cookieParser = require("cookie-parser"); // Cookie parsing middleware
+var cors = require("cors");
+var path = require("path");
+var cookieParser = require("cookie-parser");
 var logger = require("morgan"); // HTTP request logging
 const fs = require("fs"); // File system operations for logging
 var app = express();
@@ -50,8 +23,6 @@ app.use(express.urlencoded({ extended: false })); // Parse URL-encoded bodies
 app.use(cookieParser()); // Parse cookies from requests
 app.use("/", express.static(path.join(__dirname, "views"))); // Serve static files
 
-// Translation and speech processing imports
-const fetch = require("cross-fetch"); // HTTP client (polyfill)
 const translate = require("google-translate-api-x"); // Google Translate API
 
 // Deepgram SDK for Speech-to-Text (STT) and Text-to-Speech (TTS)
@@ -70,13 +41,13 @@ if (!process.env.DEEPGRAM_API_KEY || process.env.DEEPGRAM_API_KEY.length < 10) {
   process.exit(1);
 }
 
-// Enhanced logging utility with file output
+// Save Server logging to file
 const logFileName = `server-logs-${new Date().toISOString().split("T")[0]}.log`;
 const logToFile = (logMessage) => {
   try {
     fs.appendFileSync(logFileName, logMessage + "\n");
   } catch (error) {
-    console.error("Failed to write to log file:", error.message);
+    console.error("Failed to write Server log file:", error.message);
   }
 };
 
@@ -125,7 +96,7 @@ const log = {
   },
 };
 
-// Client-side log file management
+// Save Client logging to file
 const clientLogFileName = `client-logs-${
   new Date().toISOString().split("T")[0]
 }.log`;
@@ -162,6 +133,79 @@ const clientLog = {
 log.info("🚀 Server starting up - logs saved to: " + logFileName);
 log.info("📱 Client logs will be saved to: " + clientLogFileName);
 log.info("Deepgram SDK initialized", { version: deepgram.version });
+
+/**
+ * =============================================================================
+ * COMPLETE PIPELINE FLOW DOCUMENTATION
+ * =============================================================================
+ *
+ * This application implements a real-time multi-user translation system using:
+ * - Vonage Video API: Audio Connector for audio capture/playback
+ * - Deepgram: Speech-to-Text (STT) and Text-to-Speech (TTS)
+ * - Google Translate: Language translation
+ *
+ * PIPELINE ARCHITECTURE:
+ * =====================
+ *
+ * PIPELINE INIT: Audio Connector Setup & STT Configuration
+ *   log.pipeline("INIT", "Per-user Audio Connector setup")
+ *   → Establishes per-user Audio Connector connections
+ *   → Associates userId with WebSocket for individual processing
+ *   → Sets up session tracking for language preferences
+ *
+ * PIPELINE STEP 1: Deepgram STT Configuration
+ *   log.pipeline("1", "Deepgram STT configured with language-optimized settings")
+ *   → Maps user language preferences to Deepgram language codes
+ *   → Configures STT for user's specific language (e.g., "fr", "es", "en-US")
+ *   → Falls back to multi-language detection for users without preferences
+ *
+ * PIPELINE STEP 2: Speech-to-Text Processing
+ *   log.pipeline("2", "Processing complete sentence from user")
+ *   → Receives final transcripts from Deepgram STT
+ *   → Implements sentence buffering to combine partial transcripts
+ *   → Processes complete sentences for translation accuracy
+ *
+ * PIPELINE STEP 3: Google Translate Integration
+ *   log.pipeline("3", "Translation completed")
+ *   → Uses speaker's language preference as source hint for accuracy
+ *   → Translates text to each target user's preferred language
+ *   → Enhanced error handling with fallback to original text
+ *
+ * PIPELINE STEP 4: Deepgram Text-to-Speech Generation
+ *   log.pipeline("4-TTS", "Voice model selected for TTS")
+ *   log.pipeline("4", "TTS generated for user")
+ *   → Selects appropriate voice model based on target language
+ *   → Native voices: English (aura-2-asteria-en), Spanish (aura-2-celeste-es)
+ *   → Fallback: English voice for all other languages (Deepgram limitation)
+ *   → Generates high-quality audio optimized for Audio Connector playback
+ *
+ * PIPELINE STEP 5: Audio Delivery & Feedback Prevention
+ *   log.pipeline("5", "TTS audio sent to user")
+ *   → Routes TTS audio to target user's Audio Connector (NOT speaker's)
+ *   → Prevents audio feedback loops through userId verification
+ *   → Chunks audio into 640-byte packets for real-time streaming
+ *
+ * MULTI-USER ARCHITECTURE:
+ * ========================
+ *
+ * Each user maintains:
+ * - Individual Audio Connector connection (captures user's speech)
+ * - Personal language preference (optimizes STT accuracy)
+ * - Dedicated WebSocket connection (isolated processing)
+ * - Own "translation inbox" (receives TTS from other users)
+ *
+ * Translation Flow Example:
+ * UserA (French) speaks → STT (fr) → Translation (fr→es) → TTS (Spanish voice) → UserB's Audio Connector
+ * UserB (Spanish) speaks → STT (es) → Translation (es→fr) → TTS (English voice) → UserA's Audio Connector
+ *
+ * Key Benefits:
+ * - No cross-talk between users (individual Audio Connectors)
+ * - Language-optimized STT for better accuracy
+ * - Feedback prevention (users don't hear own translations)
+ * - Scalable to N users with N Audio Connectors
+ *
+ * =============================================================================
+ */
 
 // ===== SESSION & USER MANAGEMENT =====
 
@@ -498,58 +542,6 @@ app.get("/:sessionId/audioconnect/:userId", async function (req, res) {
   }
 });
 
-/**
- * LEGACY: Session-wide Audio Connector (deprecated in favor of per-user)
- * GET /:sessionId/audioconnect
- */
-app.get("/:sessionId/audioconnect", async function (req, res) {
-  try {
-    const sessionId = req.params["sessionId"];
-    log.info("Audio Connector connection request", { sessionId });
-
-    token = videoClient.generateClientToken(sessionId);
-
-    // Connect Audio Connector to the video session
-    // This captures audio from all participants and sends to our WebSocket
-    const result = await videoClient.connectToWebsocket(sessionId, token, {
-      uri: websocket_server_uri, // Our WebSocket server URI
-      headers: { sessionid: sessionId }, // Pass session ID in headers
-      audioRate: 16000, // 16kHz sample rate (required by Deepgram)
-      bidirectional: true, // Enable audio playback (TTS → session)
-    });
-
-    if (result.connectionId != null) {
-      log.success("Audio Connector connected successfully", {
-        sessionId,
-        connectionId: result.connectionId,
-        audioRate: "16kHz",
-        bidirectional: true,
-      });
-
-      return res.json({
-        success: true,
-        message: "Audio Connector connected to socket",
-        connectionId: result.connectionId,
-      });
-    } else {
-      log.error(
-        "Audio Connector connection failed - no connection ID returned"
-      );
-      return res.status(500).json({
-        success: false,
-        message: "Audio Connector failed to connect to socket",
-      });
-    }
-  } catch (error) {
-    log.error("Audio Connector connection error", error);
-    return res.status(500).json({
-      success: false,
-      message: "Audio Connector connection failed",
-      error: error.message,
-    });
-  }
-});
-
 // ===== WEBSOCKET SERVER & AUDIO PROCESSING =====
 
 /**
@@ -763,9 +755,9 @@ wsServer.on("connection", (websocket, request) => {
    *    - Triggers: WebSocket connection registration for transcript broadcasting
    *
    * 4. "close_audio_connector" command - Cleanup request
-   *    - Source: index.ejs line 126 (sent on page unload/beforeunload)
+   *    - Source: index.ejs line ~471 (manual stop) and line ~658 (page unload/beforeunload)
    *    - Purpose: Request shutdown of Audio Connector for session cleanup
-   *    - Format: {"command":"close_audio_connector","sessionid":"<%=sessionId%>"}
+   *    - Format: {"command":"close_audio_connector","sessionid":"<%=sessionId%>","userid":userId}
    *    - Triggers: Audio Connector connection termination and resource cleanup
    */
   websocket.on("message", function message(data, isBinary) {
@@ -1228,6 +1220,12 @@ wsServer.on("connection", (websocket, request) => {
                   };
                 }
 
+                /**
+                 * PIPELINE STEP 3: Google Translate Integration
+                 * - Uses speaker's language preference as source hint for accuracy
+                 * - Translates text to target user's preferred language
+                 * - Enhanced error handling with fallback to original text
+                 */
                 log.pipeline("3", "Translation completed", {
                   speakerUserId: speakerUserId,
                   targetUserId: user.userId,
@@ -1298,6 +1296,12 @@ wsServer.on("connection", (websocket, request) => {
 
                   const voiceModel = getVoiceModel(user.language);
 
+                  /**
+                   * PIPELINE STEP 4: Deepgram Text-to-Speech (TTS) Generation
+                   * - Selects appropriate voice model based on target language
+                   * - Uses native voices for English/Spanish, English fallback for others
+                   * - Generates high-quality audio for Audio Connector playback
+                   */
                   log.pipeline("4-TTS", "Voice model selected for TTS", {
                     targetUserId: user.userId,
                     targetUserLanguage: user.language,
@@ -1682,16 +1686,28 @@ wsServer.on("connection", (websocket, request) => {
       }
     }
 
-    // ===== CLEANUP REQUEST (from index.ejs line 126) =====
+    // ===== CLEANUP REQUEST (from index.ejs) =====
     else if (data.toString().includes("close_audio_connector")) {
       /**
        * AUDIO CONNECTOR SHUTDOWN REQUEST
-       * Sent by web clients to request cleanup of Audio Connector resources.
+       * Sent by web clients to request cleanup of Audio Connector resources and save Deepgram credits.
        *
-       * Source: index.ejs line 126 - executed on page unload/beforeunload
-       * Code: websocket.send(JSON.stringify({command:"close_audio_connector", sessionid:"<%=sessionId%>"}));
-       * Purpose: Graceful shutdown of Audio Connector to prevent resource leaks
-       * Trigger: Page unload/close events in browser
+       * TRIGGERS:
+       * 1. Manual stop: User clicks "Stop Deepgram" button (index.ejs ~471)
+       * 2. Page unload: Browser tab/window closed without stopping (index.ejs ~658)
+       * 3. Browser crash: Automatic cleanup via WebSocket close event (failsafe)
+       *
+       * MESSAGE FORMAT:
+       * {"command":"close_audio_connector", "sessionid":"<%=sessionId%>", "userid":userId}
+       *
+       * CLEANUP PROCESS:
+       * 1. Closes Deepgram STT connection (dgConnection.requestClose())
+       * 2. Terminates Audio Connector WebSocket connection
+       * 3. Removes user from session tracking
+       * 4. Prevents ongoing Deepgram credit usage
+       * 5. Ensures proper resource cleanup and garbage collection
+       *
+       * COST SAVINGS: Immediately stops Deepgram STT/TTS processing to prevent unnecessary charges
        */
       const messageData = JSON.parse(data);
       const sessionId = messageData["sessionid"];
