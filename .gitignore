@@ -4,3 +4,4 @@ private.key
 DEV
 server-logs-*.log
 client-logs-*.log
+gcloud-key.json

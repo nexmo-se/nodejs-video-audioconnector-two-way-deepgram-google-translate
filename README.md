@@ -1762,3 +1762,194 @@ token = videoClient.generateClientToken(sessionId, {
   "text": "Où est-il maintenant?"
 }
 ```
+
+## Live Captions (real-time transcription and translation) architecture
+
+The live captions (real-time transcription and translation) architecture in the codebase is a multi-layer pipeline involving both backend and frontend components. Here’s how it works, step by step, with references to the relevant files and functions:
+
+---
+
+## **1. Video Session & User Identification**
+
+- Each user joins a Vonage Video session via the frontend (views/index.ejs, `startSession`).
+- The user's unique `connectionId` is used as their `userId` for all further processing.
+
+**Snippet:**
+
+```js
+// views/js/client.js
+session = OT.initSession(apiKey, sessionId);
+window.currentSession = session;
+session.connect(token, async function (err) {
+  // ...
+  window.currentPublisher = publisher;
+  console.log("Connection ID:", session.connection.connectionId);
+});
+```
+
+---
+
+## **2. Audio Connector Initialization (Per User)**
+
+- When a user clicks "Start Deepgram," the frontend requests a per-user Audio Connector via:
+  - `GET /:sessionId/audioconnect/:userId`
+- The backend (video-chat-server.js) creates a dedicated Audio Connector for that user, embedding their `connectionId` as `userId` in the token.
+
+**Snippet:**
+
+```js
+// video-chat-server.js
+app.get("/:sessionId/audioconnect/:userId", async function (req, res) {
+  // ...
+  const tokenData = {
+    userId: userId, // connectionId for stream identification
+    type: "audio_connector",
+    role: "translator",
+  };
+  // ...
+});
+```
+
+---
+
+## **3. Audio Streaming & Speech-to-Text (STT) Pipeline**
+
+- The Audio Connector streams raw audio from the user's session to the backend via WebSocket.
+- The backend receives audio and forwards it to Deepgram for STT.
+
+**Snippet:**
+
+```js
+// video-chat-server.js
+if (
+  websocket.dgConnection != null &&
+  websocket.dgConnection.getReadyState() == 1
+) {
+  websocket.dgConnection.send(data); // Forward audio to Deepgram STT
+}
+```
+
+---
+
+## **4. Transcript Processing & Translation**
+
+- When Deepgram returns a final transcript, the backend processes it in `processCompleteTranscript`.
+- The transcript is:
+  1. Sent as-is to the speaker's web client.
+  2. Translated (via Google Translate) for each other user in the session with a different language preference.
+  3. Sent as a message to each target user's web client.
+
+**Snippet:**
+
+```js
+// video-chat-server.js
+async function processCompleteTranscript(completeTranscript, speakerWebSocket) {
+  // Send original to speaker
+  const speakerTranscriptionUpdate = {
+    type: "transcription",
+    speakerUserId: speakerUserId,
+    originalText: completeTranscript,
+    translatedText: completeTranscript,
+    sourceLanguage: speakerLanguage,
+    targetLanguage: "original",
+  };
+  // Send to speaker's web client
+  wsServer.clients.forEach(function each(client) {
+    if (
+      client.sessionId === sessionId &&
+      client.userId === speakerUserId &&
+      !client.isAudioConnector
+    ) {
+      client.send(JSON.stringify(speakerTranscriptionUpdate));
+    }
+  });
+
+  // Translate and send to other users
+  for (const user of otherUsers) {
+    const translationResult = await translate(completeTranscript, {
+      to: user.language,
+      from: speakerLanguage,
+    });
+    const transcriptionUpdate = {
+      type: "transcription",
+      speakerUserId: speakerUserId,
+      originalText: completeTranscript,
+      translatedText: translationResult.text,
+      sourceLanguage: speakerLanguage,
+      targetLanguage: user.language,
+    };
+    wsServer.clients.forEach(function each(client) {
+      if (client.userId === user.userId && !client.isAudioConnector) {
+        client.send(JSON.stringify(transcriptionUpdate));
+      }
+    });
+  }
+}
+```
+
+---
+
+## **5. Frontend Reception & Display**
+
+- The frontend listens for WebSocket messages of type `"transcription"` and updates the UI in real time (views/index.ejs, `handleWebSocketMessage`).
+
+**Snippet:**
+
+```js
+// views/index.ejs
+/**
+ * ENHANCED TRANSCRIPTION DISPLAY HANDLER
+ * Receives and displays real-time transcription/translation results from the multi-user server
+ */
+ws.onmessage = function (event) {
+  const msg = JSON.parse(event.data);
+  if (msg.type === "transcription") {
+    // Display in transcription log
+    // e.g., "Connection abc123... (fr→es) -> 12:30 PM : Hola, ¿cómo estás?"
+  }
+};
+```
+
+---
+
+## **6. Data Structures & Session Management**
+
+- The backend tracks all users in a session and their language preferences using a `sessionUsers` Map.
+- This ensures correct routing of transcripts and translations.
+
+**Snippet:**
+
+```js
+// video-chat-server.js
+sessionUsers = Map {
+  sessionId => Map {
+    userId => {
+      connectionId: websocket.id,
+      language: "fr",
+      websocket: websocketInstance,
+      isActive: true
+    }
+  }
+}
+```
+
+---
+
+## **Summary Table**
+
+| Step | Component                  | File                 | Function/Logic                |
+| ---- | -------------------------- | -------------------- | ----------------------------- |
+| 1    | User joins session         | index.ejs, client.js | `startSession`                |
+| 2    | Audio Connector setup      | video-chat-server.js | `/audioconnect/:userId` route |
+| 3    | Audio streaming to backend | video-chat-server.js | WebSocket audio handler       |
+| 4    | STT & translation          | video-chat-server.js | `processCompleteTranscript`   |
+| 5    | Caption display            | index.ejs            | WebSocket message handler     |
+| 6    | Session/user tracking      | video-chat-server.js | `sessionUsers` Map            |
+
+---
+
+**In summary:**
+
+- Each user’s speech is captured via their Audio Connector, transcribed by Deepgram, translated if needed, and broadcast as a caption to all users’ web clients.
+- The core logic is in `processCompleteTranscript` and the frontend WebSocket message handler in index.ejs.
+- Session/user management ensures correct routing and display of captions for all users.
